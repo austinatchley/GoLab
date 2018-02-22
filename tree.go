@@ -1,6 +1,7 @@
 package main
 
 import (
+  "flag"
   "fmt"
 )
 
@@ -50,10 +51,19 @@ func Same(t1, t2 *Tree) bool {
 }
 
 func main() { 
-  //t1 := tree.New(10)
-  //t2 := tree.New(10)
+  hWorkers := flag.Int("hash-workers", 1, "number of workers on hashing")
+  dWorkers := flag.Int("data-workers", 1, "number of workers on data")
+  cWorkers := flag.Int("comp-workers", 1, "number of workers on comparison")
   
-  //fmt.Println(Same(t1, t2))
-  fmt.Println()
+  //input := flag.String("input", "", "path to input file")
+  var input string
+  flag.StringVar(&input, "input", "", "path to input file")
+
+  flag.Parse()
+
+  fmt.Println("Number of Hash Workers: ", *hWorkers)
+  fmt.Println("Number of Data Workers: ", *dWorkers)
+  fmt.Println("Number of Comparison Workers: ", *cWorkers)
+  fmt.Println("Input path: ", input)
 }
 
