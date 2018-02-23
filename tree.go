@@ -115,6 +115,13 @@ func main() {
   fmt.Println("Input path: ", input)
 
   trees := make([]Tree, 10)
+  
+  readInput(trees, input)
+  fmt.Println(trees, len(trees))
+
+}
+
+func readInput(trees []Tree, input string) {
   f, err := os.Open(input)
   check(err)
   reader := bufio.NewReader(f)
@@ -138,6 +145,4 @@ func main() {
 
     fmt.Println(data, len(data))
   }
-
-
 }
