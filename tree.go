@@ -21,21 +21,22 @@ type Tree struct {
 func (tree *Tree) AddNode(val int) (e error) {
   e = nil
 
-  if val < tree.Value {
+  switch{
+  case val < tree.Value:
     if tree.Left != nil {
       tree.Left.AddNode(val)
     } else {
       left := Tree{nil, val, nil}
       tree.Left = &left
     }
-  } else if val > tree.Value {
+  case val > tree.Value:
     if tree.Right != nil {
       tree.Right.AddNode(val)
     } else {
       right := Tree{nil, val, nil}
       tree.Right = &right
     }
-  } else if val == tree.Value {
+  default:
     e = errors.New("given value is equal to the value of the current node")
   }
   return
@@ -59,11 +60,13 @@ func (tree *Tree) Length() int {
 func (tree *Tree) Hash() uint32 {
   c := make(chan int)
   go Walk(tree, c)
+
   var hash uint32 = 0
+
+  // Unpack values from the channel c while it is OK
   val, ok := <-c
-  for ok {
+  for ; ok; val, ok = <-c {
     hash = hash + uint32(val) * 3433
-    val, ok = <-c
   }
   return hash
 }
@@ -87,7 +90,7 @@ func main() {
   trees := make([]Tree, 10)
 
   readInput(trees, input)
-  fmt.Println(trees, len(trees))
+  // fmt.Println(trees, len(trees))
 
   // Compute hashes
   // hashMap is a map from hash to slice of Trees
@@ -104,8 +107,9 @@ func main() {
     for j := range matrix[i] {
       matrix[i][j] = Same(&trees[i], &trees[j], hashes[i], hashMap)
     }
-    fmt.Println(matrix[i])
   }
+
+  printMatrix(matrix)
 }
 
 // Functions
@@ -130,22 +134,22 @@ func Walk(t *Tree, ch chan int) {
 func Same(t1, t2 *Tree, hash1 uint32, hashMap map[uint32][]Tree) bool {
   equalTrees := hashMap[hash1]
   for i := range equalTrees {
-    if &equalTrees[i] == t2 {
+    if equalTrees[i] == *t2 {
       return SameTraverse(t1, t2)
     }
   }
-  fmt.Println("t1: ", *t1, "\nt2: ", *t2, "\neT: ", equalTrees, "\n")
+  //fmt.Println("t1: ", *t1, "\nt2: ", *t2, "\neT: ", equalTrees, "\n")
   return false
 }
 
 func SameTraverse(t1, t2 *Tree) bool {
-  fmt.Println("THESE SHOULD BE EQUAL\nt1: ", *t1, "\nt2: ", *t2, "\n")
+  //fmt.Println("THESE SHOULD BE EQUAL\nt1: ", *t1, "\nt2: ", *t2, "\n")
   c1 := make(chan int)
   c2 := make(chan int)
 
   // deleted go statements
-  Walk(t1, c1)
-  Walk(t2, c2)
+  go Walk(t1, c1)
+  go Walk(t2, c2)
 
   for {
     v1, ok1 := <-c1
@@ -213,6 +217,12 @@ func readInput(trees []Tree, input string) {
     trees[index] = tree
     index++
 
-    fmt.Println(data, len(data))
+    // fmt.Println(data, len(data))
+  }
+}
+
+func printMatrix(matrix [][]bool) {
+  for _, elem := range matrix {
+    fmt.Println(elem)
   }
 }
