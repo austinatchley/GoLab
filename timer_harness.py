@@ -56,7 +56,7 @@ def run(arg_list):
 
     print('Data:\t', data)
 
-    return 1
+    return float(data[0])
 
 
 def control_test():
@@ -72,19 +72,18 @@ def control_test():
         data.append(' '.join(element.rstrip() for element in row))
 
     print("data:\t", data)
-    return 1
+    return float(data[0])
 
 
 print("Control")
 control_test()
 control = control_test()
-print("")
+print("control: ", control)
 
 both = 0.0
 both_spin = 0.0
 
 tests_completed = 0
-tests_completed_spin = 0
 
 for i in range(TESTS):
     print("\nIteration ", i)
@@ -92,20 +91,12 @@ for i in range(TESTS):
     if val != -1:
         both += val
         tests_completed += 1
-for i in range(TESTS):
-    print("\nIteration ", i)
-    val = do_test(i, h, d, c)
-    if val != -1:
-        both_spin += val
-        tests_completed_spin += 1
 
 average = both / tests_completed
-average_spin = both_spin / tests_completed_spin
-print(average, average_spin)
+print(average)
 
 print('\nSpeedups:')
-print(average)
-print(average_spin)
+print(control / average)
 
 
 
