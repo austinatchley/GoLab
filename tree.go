@@ -1,14 +1,42 @@
 package main
 
 import (
+  "strconv"
   "flag"
+  "errors"
   "fmt"
+  "strings"
+  "bufio"
+  "os"
 )
 
 type Tree struct {
 	Left  *Tree
   Value int
   Right *Tree
+}
+
+func (tree Tree) AddNode(val int) (e error) {
+  e = nil
+
+  if val < tree.Value {
+    if tree.Left != nil {
+      tree.Left.AddNode(val)
+    } else {
+      left := Tree{nil, val, nil}
+      tree.Left = &left
+    }
+  } else if val > tree.Value {
+    if tree.Right != nil {
+      tree.Right.AddNode(val)
+    } else {
+      right := Tree{nil, val, nil}
+      tree.Right = &right
+    }
+  } else if val == tree.Value {
+    e = errors.New("given value is equal to the value of the current node")
+  }
+  return
 }
 
 func _walk(t *Tree, ch chan int) {
@@ -50,6 +78,26 @@ func Same(t1, t2 *Tree) bool {
   return true
 }
 
+func check(e error) {
+  if e != nil {
+    panic(e)
+  }
+}
+
+func createTree(data []int) (tree Tree, e error) {
+  if len(data) == 0 {
+    e = errors.New("length of data is 0")
+    return
+  }
+
+  tree = Tree{nil, data[0], nil}
+  for i := 1; i < len(data); i++ {
+    err := tree.AddNode(data[i])
+    check(err)
+  }
+  return
+}
+
 func main() { 
   hWorkers := flag.Int("hash-workers", 1, "number of workers on hashing")
   dWorkers := flag.Int("data-workers", 1, "number of workers on data")
@@ -60,10 +108,36 @@ func main() {
   flag.StringVar(&input, "input", "", "path to input file")
 
   flag.Parse()
-
+  
   fmt.Println("Number of Hash Workers: ", *hWorkers)
   fmt.Println("Number of Data Workers: ", *dWorkers)
   fmt.Println("Number of Comparison Workers: ", *cWorkers)
   fmt.Println("Input path: ", input)
-}
 
+  trees := make([]Tree, 10)
+  f, err := os.Open(input)
+  check(err)
+  reader := bufio.NewReader(f)
+  
+  index := 0
+  rawData, err := reader.ReadString('\n');
+  for ; err == nil; rawData, err = reader.ReadString('\n') {
+    check(err)
+
+    strData := strings.Fields(rawData)
+    data := make([]int, len(strData))
+    for i, elem := range strData {
+      data[i], err = strconv.Atoi(elem)
+      check(err)
+    }
+
+    tree,err := createTree(data)
+    check(err)
+    trees[index] = tree
+    index++
+
+    fmt.Println(data, len(data))
+  }
+
+
+}
