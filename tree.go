@@ -103,9 +103,15 @@ func main() {
   matrix := make([][]bool, len(trees))
   for i := range matrix {
     matrix[i] = make([]bool, len(trees))
+  }
 
+  for i := range matrix {
     for j := range matrix[i] {
-      matrix[i][j] = Same(&trees[i], &trees[j], hashes[i], hashMap)
+      result := Same(&trees[i], &trees[j], hashes[i], hashMap)
+
+      // Mirror result to cut down on computation
+      matrix[i][j] = result
+      matrix[j][i] = result
     }
   }
 
