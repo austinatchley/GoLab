@@ -122,17 +122,22 @@ func Walk(t *Tree, ch chan int) {
 // Uses the hashes map to cheat
 func Same(t1, t2 *Tree, hash1 uint32, hashMap map[uint32][]Tree) bool {
   equalTrees := hashMap[hash1]
+  fmt.Println("eT length: ", len(equalTrees))
   for i := range equalTrees {
     if &equalTrees[i] == t2 {
-      return true
+      return SameTraverse(t1, t2)
     }
   }
+  return false
+}
 
+func SameTraverse(t1, t2 *Tree) bool {
   c1 := make(chan int)
   c2 := make(chan int)
 
-  go Walk(t1, c1)
-  go Walk(t2, c2)
+  // deleted go statements
+  Walk(t1, c1)
+  Walk(t2, c2)
 
   for {
     v1, ok1 := <-c1
