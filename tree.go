@@ -10,12 +10,14 @@ import (
   "os"
 )
 
+// Structs
 type Tree struct {
 	Left  *Tree
   Value int
   Right *Tree
 }
 
+// Struct Methods
 func (tree *Tree) AddNode(val int) (e error) {
   e = nil
 
@@ -39,6 +41,29 @@ func (tree *Tree) AddNode(val int) (e error) {
   return
 }
 
+func main() { 
+  hWorkers := flag.Int("hash-workers", 1, "number of workers on hashing")
+  dWorkers := flag.Int("data-workers", 1, "number of workers on data")
+  cWorkers := flag.Int("comp-workers", 1, "number of workers on comparison")
+  
+  //input := flag.String("input", "", "path to input file")
+  var input string
+  flag.StringVar(&input, "input", "", "path to input file")
+
+  flag.Parse()
+  
+  fmt.Println("Number of Hash Workers: ", *hWorkers)
+  fmt.Println("Number of Data Workers: ", *dWorkers)
+  fmt.Println("Number of Comparison Workers: ", *cWorkers)
+  fmt.Println("Input path: ", input)
+
+  trees := make([]Tree, 10)
+  
+  readInput(trees, input)
+  fmt.Println(trees, len(trees))
+
+}
+
 func _walk(t *Tree, ch chan int) {
   if t != nil {
     _walk(t.Left, ch)
@@ -46,6 +71,8 @@ func _walk(t *Tree, ch chan int) {
     _walk(t.Right, ch)
   }
 }
+
+// Functions
 
 // Walk walks the tree t sending all values
 // from the tree to the channel ch.
@@ -78,12 +105,6 @@ func Same(t1, t2 *Tree) bool {
   return true
 }
 
-func check(e error) {
-  if e != nil {
-    panic(e)
-  }
-}
-
 func createTree(data []int) (tree Tree, e error) {
   if len(data) == 0 {
     e = errors.New("length of data is 0")
@@ -98,27 +119,11 @@ func createTree(data []int) (tree Tree, e error) {
   return
 }
 
-func main() { 
-  hWorkers := flag.Int("hash-workers", 1, "number of workers on hashing")
-  dWorkers := flag.Int("data-workers", 1, "number of workers on data")
-  cWorkers := flag.Int("comp-workers", 1, "number of workers on comparison")
-  
-  //input := flag.String("input", "", "path to input file")
-  var input string
-  flag.StringVar(&input, "input", "", "path to input file")
-
-  flag.Parse()
-  
-  fmt.Println("Number of Hash Workers: ", *hWorkers)
-  fmt.Println("Number of Data Workers: ", *dWorkers)
-  fmt.Println("Number of Comparison Workers: ", *cWorkers)
-  fmt.Println("Input path: ", input)
-
-  trees := make([]Tree, 10)
-  
-  readInput(trees, input)
-  fmt.Println(trees, len(trees))
-
+// Utility Functions
+func check(e error) {
+  if e != nil {
+    panic(e)
+  }
 }
 
 func readInput(trees []Tree, input string) {
