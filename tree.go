@@ -1,6 +1,7 @@
 package main
 
 import (
+  "time"
   "strconv"
   "flag"
   "errors"
@@ -82,16 +83,19 @@ func main() {
 
   flag.Parse()
 
-  fmt.Println("Number of Hash Workers: ", *hWorkers)
-  fmt.Println("Number of Data Workers: ", *dWorkers)
-  fmt.Println("Number of Comparison Workers: ", *cWorkers)
-  fmt.Println("Input path: ", input)
+  _,_,_,_ = hWorkers, dWorkers, cWorkers, input
+
+  //fmt.Println("Number of Hash Workers: ", *hWorkers)
+  //fmt.Println("Number of Data Workers: ", *dWorkers)
+  //fmt.Println("Number of Comparison Workers: ", *cWorkers)
+  //fmt.Println("Input path: ", input)
 
   trees := make([]Tree, 10)
 
   readInput(trees, input)
   // fmt.Println(trees, len(trees))
 
+  beginTime := time.Now()
   // Compute hashes
   // hashMap is a map from hash to slice of Trees
   // hashes is the array of hashes by index
@@ -115,7 +119,10 @@ func main() {
     }
   }
 
-  printMatrix(matrix)
+  //printMatrix(matrix)
+  endTime := time.Now()
+  diff := endTime.Sub(beginTime).Nanoseconds()
+  fmt.Println(diff)
 }
 
 // Functions
@@ -153,7 +160,6 @@ func SameTraverse(t1, t2 *Tree) bool {
   c1 := make(chan int)
   c2 := make(chan int)
 
-  // deleted go statements
   go Walk(t1, c1)
   go Walk(t2, c2)
 
