@@ -41,27 +41,51 @@ func (tree *Tree) AddNode(val int) (e error) {
   return
 }
 
+func (tree *Tree) Length() int {
+  left, right := 1, 1
+  if tree.Left != nil {
+    left = tree.Left.Length()
+  }
+  if tree.Right != nil {
+    right = tree.Right.Length()
+  }
+
+  if left > right {
+    return left
+  }
+  return right
+}
+
+// Main
 func main() { 
   hWorkers := flag.Int("hash-workers", 1, "number of workers on hashing")
   dWorkers := flag.Int("data-workers", 1, "number of workers on data")
   cWorkers := flag.Int("comp-workers", 1, "number of workers on comparison")
-  
-  //input := flag.String("input", "", "path to input file")
+
   var input string
   flag.StringVar(&input, "input", "", "path to input file")
 
   flag.Parse()
-  
+
   fmt.Println("Number of Hash Workers: ", *hWorkers)
   fmt.Println("Number of Data Workers: ", *dWorkers)
   fmt.Println("Number of Comparison Workers: ", *cWorkers)
   fmt.Println("Input path: ", input)
 
   trees := make([]Tree, 10)
-  
+
   readInput(trees, input)
   fmt.Println(trees, len(trees))
 
+  matrix := make([][]bool, len(trees))
+  for i := range matrix {
+    matrix[i] = make([]bool, len(trees))
+
+    for j := range matrix[i] {
+      matrix[i][j] = Same(&trees[i], &trees[j])
+    }
+    fmt.Println(matrix[i])
+  }
 }
 
 func _walk(t *Tree, ch chan int) {
