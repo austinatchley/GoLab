@@ -1,6 +1,7 @@
 package main
 
 import (
+  "math/rand"
   "strconv"
   "flag"
   "errors"
@@ -56,8 +57,12 @@ func (tree *Tree) Length() int {
   return right
 }
 
+func (tree *Tree) Hash() uint32 {
+  return rand.Uint32()
+}
+
 // Main
-func main() { 
+func main() {
   hWorkers := flag.Int("hash-workers", 1, "number of workers on hashing")
   dWorkers := flag.Int("data-workers", 1, "number of workers on data")
   cWorkers := flag.Int("comp-workers", 1, "number of workers on comparison")
@@ -77,17 +82,23 @@ func main() {
   readInput(trees, input)
   fmt.Println(trees, len(trees))
 
+  // Compute hashes
+  hashes := make([]uint32, len(trees))
+  computeHashes(trees, hashes)
+
+  // Construct adjacency matrix and compare trees
   matrix := make([][]bool, len(trees))
   for i := range matrix {
     matrix[i] = make([]bool, len(trees))
 
     for j := range matrix[i] {
-      matrix[i][j] = Same(&trees[i], &trees[j])
+      matrix[i][j] = Same(&trees[i], &trees[j], hashes[i], hashes[j])
     }
     fmt.Println(matrix[i])
   }
 }
 
+// Functions
 func _walk(t *Tree, ch chan int) {
   if t != nil {
     _walk(t.Left, ch)
@@ -95,8 +106,6 @@ func _walk(t *Tree, ch chan int) {
     _walk(t.Right, ch)
   }
 }
-
-// Functions
 
 // Walk walks the tree t sending all values
 // from the tree to the channel ch.
@@ -107,21 +116,25 @@ func Walk(t *Tree, ch chan int) {
 
 // Same determines whether the trees
 // t1 and t2 contain the same values.
-func Same(t1, t2 *Tree) bool {
+func Same(t1, t2 *Tree, hash1, hash2 uint32) bool {
+  if hash1 == hash2 {
+    return true
+  }
+
   c1 := make(chan int)
   c2 := make(chan int)
-  
+
   go Walk(t1, c1)
   go Walk(t2, c2)
-  
+
   for {
     v1, ok1 := <-c1
     v2, ok2 := <-c2
-    
+
     if v1 != v2 || ok1 != ok2{
       return false
     }
-    
+
     if !ok1 {
       break
     }
@@ -143,6 +156,12 @@ func createTree(data []int) (tree Tree, e error) {
   return
 }
 
+func computeHashes(trees []Tree, hashes []uint32) {
+  for i, elem := range trees {
+    hashes[i] = elem.Hash()
+  }
+}
+
 // Utility Functions
 func check(e error) {
   if e != nil {
@@ -154,7 +173,7 @@ func readInput(trees []Tree, input string) {
   f, err := os.Open(input)
   check(err)
   reader := bufio.NewReader(f)
-  
+
   index := 0
   rawData, err := reader.ReadString('\n');
   for ; err == nil; rawData, err = reader.ReadString('\n') {
