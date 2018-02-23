@@ -1,7 +1,6 @@
 package main
 
 import (
-  "math/rand"
   "strconv"
   "flag"
   "errors"
@@ -58,7 +57,15 @@ func (tree *Tree) Length() int {
 }
 
 func (tree *Tree) Hash() uint32 {
-  return rand.Uint32()
+  c := make(chan int)
+  go Walk(tree, c)
+  var hash uint32 = 0
+  val, ok := <-c
+  for ok {
+    hash = hash + uint32(val) * 3433
+    val, ok = <-c
+  }
+  return hash
 }
 
 // Main
@@ -122,16 +129,17 @@ func Walk(t *Tree, ch chan int) {
 // Uses the hashes map to cheat
 func Same(t1, t2 *Tree, hash1 uint32, hashMap map[uint32][]Tree) bool {
   equalTrees := hashMap[hash1]
-  fmt.Println("eT length: ", len(equalTrees))
   for i := range equalTrees {
     if &equalTrees[i] == t2 {
       return SameTraverse(t1, t2)
     }
   }
+  fmt.Println("t1: ", *t1, "\nt2: ", *t2, "\neT: ", equalTrees, "\n")
   return false
 }
 
 func SameTraverse(t1, t2 *Tree) bool {
+  fmt.Println("THESE SHOULD BE EQUAL\nt1: ", *t1, "\nt2: ", *t2, "\n")
   c1 := make(chan int)
   c2 := make(chan int)
 
