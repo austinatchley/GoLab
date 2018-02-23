@@ -16,7 +16,7 @@ type Tree struct {
   Right *Tree
 }
 
-func (tree Tree) AddNode(val int) (e error) {
+func (tree *Tree) AddNode(val int) (e error) {
   e = nil
 
   if val < tree.Value {
