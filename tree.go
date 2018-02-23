@@ -83,8 +83,11 @@ func main() {
   fmt.Println(trees, len(trees))
 
   // Compute hashes
+  // hashMap is a map from hash to slice of Trees
+  // hashes is the array of hashes by index
+  hashMap := make(map[uint32][]Tree, len(trees))
   hashes := make([]uint32, len(trees))
-  computeHashes(trees, hashes)
+  computeHashes(trees, hashes, hashMap)
 
   // Construct adjacency matrix and compare trees
   matrix := make([][]bool, len(trees))
@@ -92,7 +95,7 @@ func main() {
     matrix[i] = make([]bool, len(trees))
 
     for j := range matrix[i] {
-      matrix[i][j] = Same(&trees[i], &trees[j], hashes[i], hashes[j])
+      matrix[i][j] = Same(&trees[i], &trees[j], hashes[i], hashMap)
     }
     fmt.Println(matrix[i])
   }
@@ -116,9 +119,13 @@ func Walk(t *Tree, ch chan int) {
 
 // Same determines whether the trees
 // t1 and t2 contain the same values.
-func Same(t1, t2 *Tree, hash1, hash2 uint32) bool {
-  if hash1 == hash2 {
-    return true
+// Uses the hashes map to cheat
+func Same(t1, t2 *Tree, hash1 uint32, hashMap map[uint32][]Tree) bool {
+  equalTrees := hashMap[hash1]
+  for i := range equalTrees {
+    if &equalTrees[i] == t2 {
+      return true
+    }
   }
 
   c1 := make(chan int)
@@ -156,9 +163,11 @@ func createTree(data []int) (tree Tree, e error) {
   return
 }
 
-func computeHashes(trees []Tree, hashes []uint32) {
+func computeHashes(trees []Tree, hashes []uint32, hashMap map[uint32][]Tree) {
   for i, elem := range trees {
-    hashes[i] = elem.Hash()
+    hash := elem.Hash()
+    hashes[i] = hash
+    hashMap[hash] = append(hashMap[hash], elem)
   }
 }
 
