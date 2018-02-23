@@ -95,7 +95,7 @@ func main() {
   // Compute hashes
   // hashMap is a map from hash to slice of Trees
   // hashes is the array of hashes by index
-  hashMap := make(map[uint32][]Tree, len(trees))
+  hashMap := make(map[uint32][]*Tree, len(trees))
   hashes := make([]uint32, len(trees))
   computeHashes(trees, hashes, hashMap)
 
@@ -131,10 +131,10 @@ func Walk(t *Tree, ch chan int) {
 // Same determines whether the trees
 // t1 and t2 contain the same values.
 // Uses the hashes map to cheat
-func Same(t1, t2 *Tree, hash1 uint32, hashMap map[uint32][]Tree) bool {
+func Same(t1, t2 *Tree, hash1 uint32, hashMap map[uint32][]*Tree) bool {
   equalTrees := hashMap[hash1]
   for i := range equalTrees {
-    if equalTrees[i] == *t2 {
+    if *equalTrees[i] == *t2 {
       return SameTraverse(t1, t2)
     }
   }
@@ -180,11 +180,11 @@ func createTree(data []int) (tree Tree, e error) {
   return
 }
 
-func computeHashes(trees []Tree, hashes []uint32, hashMap map[uint32][]Tree) {
+func computeHashes(trees []Tree, hashes []uint32, hashMap map[uint32][]*Tree) {
   for i, elem := range trees {
     hash := elem.Hash()
     hashes[i] = hash
-    hashMap[hash] = append(hashMap[hash], elem)
+    hashMap[hash] = append(hashMap[hash], &trees[i])
   }
 }
 
