@@ -90,12 +90,13 @@ func main() {
   //fmt.Println("Number of Comparison Workers: ", *cWorkers)
   //fmt.Println("Input path: ", input)
 
-  trees := make([]Tree, 10)
+  trees := make([]Tree, 1)
 
-  readInput(trees, input)
+  readInput(&trees, input)
   // fmt.Println(trees, len(trees))
 
   beginTime := time.Now()
+
   // Compute hashes
   // hashMap is a map from hash to slice of Trees
   // hashes is the array of hashes by index
@@ -110,7 +111,7 @@ func main() {
   }
 
   for i := range matrix {
-    for j := range matrix[i] {
+    for j := 0; j < len(matrix[0]) - i; j++ {
       result := Same(&trees[i], &trees[j], hashes[i], hashMap)
 
       // Mirror result to cut down on computation
@@ -119,7 +120,8 @@ func main() {
     }
   }
 
-  //printMatrix(matrix)
+  printMatrix(&matrix)
+
   endTime := time.Now()
   diff := endTime.Sub(beginTime).Nanoseconds()
   fmt.Println(diff)
@@ -207,7 +209,7 @@ func check(e error) {
   }
 }
 
-func readInput(trees []Tree, input string) {
+func readInput(trees *[]Tree, input string) {
   f, err := os.Open(input)
   check(err)
   reader := bufio.NewReader(f)
@@ -226,15 +228,15 @@ func readInput(trees []Tree, input string) {
 
     tree,err := createTree(data)
     check(err)
-    trees[index] = tree
+    *trees = append(*trees, tree)
     index++
 
     // fmt.Println(data, len(data))
   }
 }
 
-func printMatrix(matrix [][]bool) {
-  for _, elem := range matrix {
+func printMatrix(matrix *[][]bool) {
+  for _, elem := range *matrix {
     fmt.Println(elem)
   }
 }

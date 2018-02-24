@@ -16,7 +16,7 @@ if len(sys.argv) < 5:
     )
     sys.exit(0)
 
-args = "./tree.out -hash-workers " + sys.argv[1] +      \
+args = "./tree.out -hash-workers=" + sys.argv[1] +      \
     "  -data-workers=" + sys.argv[2] +                  \
     " -comp-workers=" + sys.argv[3]  +                  \
     " -input=" + sys.argv[4]
