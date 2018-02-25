@@ -90,10 +90,10 @@ func main() {
   //fmt.Println("Number of Comparison Workers: ", *cWorkers)
   //fmt.Println("Input path: ", input)
 
-  trees := make([]Tree, 1)
+  trees := make([]Tree, 0)
 
   readInput(&trees, input)
-  // fmt.Println(trees, len(trees))
+  fmt.Println(trees, len(trees))
 
   beginTime := time.Now()
 
@@ -111,13 +111,15 @@ func main() {
   }
 
   for _, list := range hashMap {
+    fmt.Println(list)
     for i := range list {
       for j := i; j < len(list); j++ {
-        result := Same(&trees[i], &trees[j], hashes[i], j, &hashMap)
+        result := SameTraverse(&trees[list[i]], &trees[list[j]])
+        fmt.Println(list[i], " and ", list[j], " are: ", result)
 
         // Mirror result to cut down on computation
-        matrix[i][j] = result
-        matrix[j][i] = result
+        matrix[list[i]][list[j]] = result
+        matrix[list[j]][list[i]] = result
       }
     }
   }
@@ -133,7 +135,7 @@ func main() {
   }
   */
 
-  //printMatrix(&matrix)
+  printMatrix(&matrix)
 
   endTime := time.Now()
   diff := endTime.Sub(beginTime).Nanoseconds()
