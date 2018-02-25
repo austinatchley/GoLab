@@ -110,6 +110,18 @@ func main() {
     matrix[i] = make([]bool, len(trees))
   }
 
+  for _, list := range hashMap {
+    for i := range list {
+      for j := i; j < len(list); j++ {
+        result := Same(&trees[i], &trees[j], hashes[i], j, &hashMap)
+
+        // Mirror result to cut down on computation
+        matrix[i][j] = result
+        matrix[j][i] = result
+      }
+    }
+  }
+  /*
   for i := range matrix {
     for j := 0; j < len(matrix[0]) - i; j++ {
       result := Same(&trees[i], &trees[j], hashes[i], j, &hashMap)
@@ -119,6 +131,7 @@ func main() {
       matrix[j][i] = result
     }
   }
+  */
 
   //printMatrix(&matrix)
 
