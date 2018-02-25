@@ -14,3 +14,6 @@ clean:
 
 simple: build
 	./tree.out -input=sample/simple.txt
+
+fine: build
+	./tree.out -input=sample/fine.txt

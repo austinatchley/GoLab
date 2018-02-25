@@ -102,7 +102,7 @@ func main() {
   // hashes is the array of hashes by index
   hashMap := make(map[uint32][]*Tree, len(trees))
   hashes := make([]uint32, len(trees))
-  computeHashes(trees, hashes, hashMap)
+  computeHashes(&trees, &hashes, &hashMap)
 
   // Construct adjacency matrix and compare trees
   matrix := make([][]bool, len(trees))
@@ -112,7 +112,7 @@ func main() {
 
   for i := range matrix {
     for j := 0; j < len(matrix[0]) - i; j++ {
-      result := Same(&trees[i], &trees[j], hashes[i], hashMap)
+      result := Same(&trees[i], &trees[j], hashes[i], &hashMap)
 
       // Mirror result to cut down on computation
       matrix[i][j] = result
@@ -120,7 +120,7 @@ func main() {
     }
   }
 
-  printMatrix(&matrix)
+  //printMatrix(&matrix)
 
   endTime := time.Now()
   diff := endTime.Sub(beginTime).Nanoseconds()
@@ -146,8 +146,8 @@ func Walk(t *Tree, ch chan int) {
 // Same determines whether the trees
 // t1 and t2 contain the same values.
 // Uses the hashes map to cheat
-func Same(t1, t2 *Tree, hash1 uint32, hashMap map[uint32][]*Tree) bool {
-  equalTrees := hashMap[hash1]
+func Same(t1, t2 *Tree, hash1 uint32, hashMap *map[uint32][]*Tree) bool {
+  equalTrees := (*hashMap)[hash1]
   for i := range equalTrees {
     if *equalTrees[i] == *t2 {
       return SameTraverse(t1, t2)
@@ -180,25 +180,26 @@ func SameTraverse(t1, t2 *Tree) bool {
   return true
 }
 
-func createTree(data []int) (tree Tree, e error) {
-  if len(data) == 0 {
+func createTree(data *[]int) (tree *Tree, e error) {
+  if len(*data) == 0 {
     e = errors.New("length of data is 0")
     return
   }
 
-  tree = Tree{nil, data[0], nil}
-  for i := 1; i < len(data); i++ {
-    err := tree.AddNode(data[i])
+  treeVal := Tree{nil, (*data)[0], nil}
+  tree = &treeVal
+  for i := 1; i < len(*data); i++ {
+    err := tree.AddNode((*data)[i])
     check(err)
   }
   return
 }
 
-func computeHashes(trees []Tree, hashes []uint32, hashMap map[uint32][]*Tree) {
-  for i, elem := range trees {
+func computeHashes(trees *[]Tree, hashes *[]uint32, hashMap *map[uint32][]*Tree) {
+  for i, elem := range *trees {
     hash := elem.Hash()
-    hashes[i] = hash
-    hashMap[hash] = append(hashMap[hash], &trees[i])
+    (*hashes)[i] = hash
+    (*hashMap)[hash] = append((*hashMap)[hash], &(*trees)[i])
   }
 }
 
@@ -226,9 +227,9 @@ func readInput(trees *[]Tree, input string) {
       check(err)
     }
 
-    tree,err := createTree(data)
+    tree,err := createTree(&data)
     check(err)
-    *trees = append(*trees, tree)
+    *trees = append(*trees, *tree)
     index++
 
     // fmt.Println(data, len(data))
