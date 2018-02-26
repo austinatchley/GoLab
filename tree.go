@@ -62,10 +62,12 @@ func (tree *Tree) HashSeq() uint32 {
   list := *WalkSeq(tree)
 
   var hash uint32 = 0
+  var prime uint32 = 4222234741
 
   // Unpack values from the channel c while it is OK
   for i := 0; i < len(list); i++ {
-    hash = hash + uint32(list[i]) * 3433
+    val2 := uint32(list[i]) + 2
+    hash = (hash * val2 + val2) % prime
   }
   return hash
 }
