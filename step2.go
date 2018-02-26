@@ -125,20 +125,23 @@ func main() {
 	// Start timing
 	beginTime := time.Now()
 
- /*
-  // Spawn a goroutine for each tree
-	for i, tree := range trees {
-    go func(tree *Tree, i int){
-      hashes[i] = tree.Hash()
-    }(&tree, i)
-  }
+	/*
+	  // Spawn a goroutine for each tree
+		for i, tree := range trees {
+	    go func(tree *Tree, i int){
+	      hashes[i] = tree.Hash()
+	    }(&tree, i)
+	  }
 
-  for i, hash := range hashes {
-    hashMap[hash] = append(hashMap[hash], i)
-  }
-*/
-  pairChan := make(chan struct{uint32; int}, len(trees))
-  finishedHashMap := make(chan int, 1)
+	  for i, hash := range hashes {
+	    hashMap[hash] = append(hashMap[hash], i)
+	  }
+	*/
+	pairChan := make(chan struct {
+		uint32
+		int
+	}, len(trees))
+	finishedHashMap := make(chan int, 1)
 	if hWorkers == 1 {
 		hashChan := make(chan *[]uint32, len(trees))
 		go computeHashesSingle(&trees, 0, hashChan, pairChan)
@@ -156,24 +159,24 @@ func main() {
 		for i := 0; i < hWorkers; i++ {
 			hash := <-hashChan
 			hashes = append(hashes, *hash...)
-			}
+		}
 	}
-  go insertHashesSingle(pairChan, finishedHashMap, &hashMap, len(trees))
-  <-finishedHashMap
-    /*
-    case mapPiece := <-mapChan:
-				for k, v := range *mapPiece {
-					_, present := hashMap[k]
-					if present {
-						//fmt.Println("Already present: ", k, " is ", hashMap[k], ". Adding", v)
-						hashMap[k] = append(hashMap[k], v...)
-					} else {
-						//fmt.Println("Setting ", k, " to ", v)
-						hashMap[k] = v
+	go insertHashesSingle(pairChan, finishedHashMap, &hashMap, len(trees))
+	<-finishedHashMap
+	/*
+	    case mapPiece := <-mapChan:
+					for k, v := range *mapPiece {
+						_, present := hashMap[k]
+						if present {
+							//fmt.Println("Already present: ", k, " is ", hashMap[k], ". Adding", v)
+							hashMap[k] = append(hashMap[k], v...)
+						} else {
+							//fmt.Println("Setting ", k, " to ", v)
+							hashMap[k] = v
+						}
 					}
-				}
-	}
-  */
+		}
+	*/
 
 	//fmt.Println(hashMap)
 
@@ -193,9 +196,9 @@ func main() {
 			}
 		}
 	}
-  for i := range matrix {
-    matrix[i][i] = true;
-  }
+	for i := range matrix {
+		matrix[i][i] = true
+	}
 	/*
 	  for i := range matrix {
 	    for j := 0; j < len(matrix[0]) - i; j++ {
@@ -303,24 +306,33 @@ func computeHashes(trees *[]Tree, offset int, hashChan chan *[]uint32, mapChan c
 	}
 }
 
-func computeHashesSingle(trees *[]Tree, offset int, hashChan chan *[]uint32, pairChan chan struct{uint32; int}) {
+func computeHashesSingle(trees *[]Tree, offset int, hashChan chan *[]uint32, pairChan chan struct {
+	uint32
+	int
+}) {
 	hashes := make([]uint32, len(*trees))
 	for i, elem := range *trees {
 		hash := elem.Hash()
 		hashes[i] = hash
-    pairChan <-struct{uint32; int}{hash, i}
+		pairChan <- struct {
+			uint32
+			int
+		}{hash, i}
 	}
 	if hashChan != nil {
 		hashChan <- &hashes
 	}
 }
 
-func insertHashesSingle(pairChan chan struct{uint32; int}, finishedHashMap chan int, hashMap *map[uint32][]int, length int) {
-  for i := 0; i < length; i++ {
-    pair := <-pairChan
-    (*hashMap)[pair.uint32] = append((*hashMap)[pair.uint32], pair.int)
-  }
-  finishedHashMap <- 1
+func insertHashesSingle(pairChan chan struct {
+	uint32
+	int
+}, finishedHashMap chan int, hashMap *map[uint32][]int, length int) {
+	for i := 0; i < length; i++ {
+		pair := <-pairChan
+		(*hashMap)[pair.uint32] = append((*hashMap)[pair.uint32], pair.int)
+	}
+	finishedHashMap <- 1
 }
 
 /*
