@@ -64,20 +64,6 @@ func (tree *Tree) Length() int {
 	return right
 }
 
-func (tree *Tree) HashSeq() uint32 {
-	list := *WalkSeq(tree)
-
-	var hash uint32 = 0
-	var prime uint32 = 4222234741
-
-	// Unpack values from the channel c while it is OK
-	for i := 0; i < len(list); i++ {
-		val2 := uint32(list[i]) + 2
-		hash = (hash*val2 + val2) % prime
-	}
-	return hash
-}
-
 func (tree *Tree) Hash() uint32 {
 	c := make(chan int)
 	// go
@@ -130,15 +116,15 @@ func main() {
 	// matrix is the adjacency matrix, initialized to false
 	matrix := make([][]bool, len(trees))
 
+  // Construct adjacency matrix 
+	for i := range matrix {
+		matrix[i] = make([]bool, len(trees))
+	}
+
 	// Start timing
 	beginTime := time.Now()
 
 	computeHashes(&trees, &hashes, &hashMap)
-
-	// Construct adjacency matrix and compare trees
-	for i := range matrix {
-		matrix[i] = make([]bool, len(trees))
-	}
 
 	for _, list := range hashMap {
 		//fmt.Println(list)
@@ -147,8 +133,8 @@ func main() {
 				li := list[i]
 				lj := list[j]
 
-				// Sequentially compare the supposed equivalent trees
-				result := SameTraverseSeq(&trees[li], &trees[lj])
+				// Compare the supposed equivalent trees
+				result := SameTraverse(&trees[li], &trees[lj])
 
 				// Mirror result to cut down on computation
 				matrix[li][lj] = result
@@ -193,43 +179,6 @@ func _walk(t *Tree, ch chan int) {
 func Walk(t *Tree, ch chan int) {
 	_walk(t, ch)
 	close(ch)
-}
-
-func _walkSeq(t *Tree, list *[]int) {
-	if t != nil {
-		_walkSeq(t.Left, list)
-		*list = append(*list, t.Value)
-		_walkSeq(t.Right, list)
-	}
-}
-
-func WalkSeq(t *Tree) *[]int {
-	list := make([]int, 0)
-	_walkSeq(t, &list)
-	return &list
-}
-
-func SameSeq(t1, t2 *Tree, hash1 uint32, i2 int, hashMap *map[uint32][]int) bool {
-	equalTrees := (*hashMap)[hash1]
-	for i := range equalTrees {
-		if equalTrees[i] == i2 {
-			return SameTraverseSeq(t1, t2)
-		}
-	}
-	//fmt.Println("t1: ", *t1, "\nt2: ", *t2, "\neT: ", equalTrees, "\n")
-	return false
-}
-
-func SameTraverseSeq(t1, t2 *Tree) bool {
-	l1 := *WalkSeq(t1)
-	l2 := *WalkSeq(t2)
-
-	for i := 0; i < len(l1); i++ {
-		if l1[i] != l2[i] {
-			return false
-		}
-	}
-	return true
 }
 
 // Same determines whether the trees
@@ -285,7 +234,7 @@ func createTree(data *[]int) (tree *Tree, e error) {
 
 func computeHashes(trees *[]Tree, hashes *[]uint32, hashMap *map[uint32][]int) {
 	for i, elem := range *trees {
-		hash := elem.HashSeq()
+		hash := elem.Hash()
 		(*hashes)[i] = hash
 		(*hashMap)[hash] = append((*hashMap)[hash], i)
 	}
