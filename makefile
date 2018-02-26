@@ -6,6 +6,9 @@ run: build
 build:
 	go build -o tree.out tree.go
 
+fmt:
+	go fmt *.go
+
 time: build
 	./timer_harness.py 1 1 1 sample/coarse.txt
 
