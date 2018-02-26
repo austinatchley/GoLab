@@ -58,8 +58,21 @@ func (tree *Tree) Length() int {
   return right
 }
 
+func (tree *Tree) HashSeq() uint32 {
+  list := *WalkSeq(tree)
+
+  var hash uint32 = 0
+
+  // Unpack values from the channel c while it is OK
+  for i := 0; i < len(list); i++ {
+    hash = hash + uint32(list[i]) * 3433
+  }
+  return hash
+}
+
 func (tree *Tree) Hash() uint32 {
   c := make(chan int)
+  // go
   go Walk(tree, c)
 
   var hash uint32 = 0
@@ -114,7 +127,7 @@ func main() {
     //fmt.Println(list)
     for i := range list {
       for j := i; j < len(list); j++ {
-        result := SameTraverse(&trees[list[i]], &trees[list[j]])
+        result := SameTraverseSeq(&trees[list[i]], &trees[list[j]])
 
         // Mirror result to cut down on computation
         matrix[list[i]][list[j]] = result
@@ -155,6 +168,44 @@ func _walk(t *Tree, ch chan int) {
 func Walk(t *Tree, ch chan int) {
   _walk(t, ch)
   close(ch)
+}
+
+func _walkSeq(t *Tree, list *[]int) {
+  if t != nil {
+    _walkSeq(t.Left, list)
+    *list = append(*list, t.Value)
+    _walkSeq(t.Right, list)
+  }
+}
+
+func WalkSeq(t *Tree) *[]int {
+  list := make([]int, 0)
+  _walkSeq(t, &list)
+  return &list
+}
+
+func SameSeq(t1, t2 *Tree, hash1 uint32, i2 int, hashMap *map[uint32][]int) bool {
+  equalTrees := (*hashMap)[hash1]
+  for i := range equalTrees {
+    if equalTrees[i] == i2 {
+      return SameTraverseSeq(t1, t2)
+    }
+  }
+  //fmt.Println("t1: ", *t1, "\nt2: ", *t2, "\neT: ", equalTrees, "\n")
+  return false
+}
+
+func SameTraverseSeq(t1, t2 *Tree) bool {
+  //fmt.Println("THESE SHOULD BE EQUAL\nt1: ", *t1, "\nt2: ", *t2, "\n")
+  l1 := *WalkSeq(t1)
+  l2 := *WalkSeq(t2)
+
+  for i := 0; i < len(l1); i++ {
+    if l1[i] != l2[i] {
+      return false
+    }
+  }
+  return true
 }
 
 // Same determines whether the trees
@@ -211,7 +262,7 @@ func createTree(data *[]int) (tree *Tree, e error) {
 
 func computeHashes(trees *[]Tree, hashes *[]uint32, hashMap *map[uint32][]int) {
   for i, elem := range *trees {
-    hash := elem.Hash()
+    hash := elem.HashSeq()
     (*hashes)[i] = hash
     (*hashMap)[hash] = append((*hashMap)[hash], i)
   }
