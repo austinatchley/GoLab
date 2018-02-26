@@ -142,7 +142,7 @@ func main() {
 
 	for _, list := range hashMap {
 		//fmt.Println(list)
-		for i := range list {
+		for i := 0; i < len(list); i++ {
 			for j := i; j < len(list); j++ {
 				li := list[i]
 				lj := list[j]

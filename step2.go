@@ -86,7 +86,8 @@ func (tree *Tree) Hash() uint32 {
  */
 
 func main() {
-	hWorkers := flag.Int("hash-workers", 1, "number of workers on hashing")
+	var hWorkers int
+	flag.IntVar(&hWorkers, "hash-workers", 1, "number of workers on hashing")
 	dWorkers := flag.Int("data-workers", 1, "number of workers on data")
 	cWorkers := flag.Int("comp-workers", 1, "number of workers on comparison")
 
@@ -97,7 +98,7 @@ func main() {
 
 	_, _, _, _ = hWorkers, dWorkers, cWorkers, input
 
-	//fmt.Println("Number of Hash Workers: ", *hWorkers)
+	//fmt.Println("Number of Hash Workers: ", hWorkers)
 	//fmt.Println("Number of Data Workers: ", *dWorkers)
 	//fmt.Println("Number of Comparison Workers: ", *cWorkers)
 	//fmt.Println("Input path: ", input)
@@ -116,7 +117,7 @@ func main() {
 	// matrix is the adjacency matrix, initialized to false
 	matrix := make([][]bool, len(trees))
 
-  // Construct adjacency matrix 
+	// Construct adjacency matrix
 	for i := range matrix {
 		matrix[i] = make([]bool, len(trees))
 	}
@@ -124,7 +125,58 @@ func main() {
 	// Start timing
 	beginTime := time.Now()
 
-	computeHashes(&trees, &hashes, &hashMap)
+	/*
+	  hashChan := make(chan uint32, len(trees))
+	  for _, tree := range trees {
+	    go computeHash(&tree, hashChan)
+	  }
+	  for i := 0; i < len(trees); i++ {
+	    val := <-hashChan
+	    hashes = append(hashes, val)
+	  }
+
+	  for i, hash := range hashes {
+			hashMap[hash] = append(hashMap[hash], i)
+	  }
+	*/
+
+	if hWorkers == 1 {
+		hashChan := make(chan *[]uint32, len(trees))
+		mapChan := make(chan *map[uint32][]int, len(trees))
+		computeHashes(&trees, 0, hashChan, mapChan)
+		hashes = *(<-hashChan)
+		hashMap = *(<-mapChan)
+	} else {
+		treesPerWorker := len(trees) / hWorkers
+		hashChan := make(chan *[]uint32, hWorkers)
+		mapChan := make(chan *map[uint32][]int, hWorkers)
+
+		for i := 0; i < hWorkers; i++ {
+			curTrees := trees[treesPerWorker*i : treesPerWorker*(i+1)]
+			//fmt.Println(curTrees)
+			go computeHashes(&curTrees, treesPerWorker*i, hashChan, mapChan)
+		}
+
+		for i := 0; i < hWorkers*2; i++ {
+			select {
+			case hash := <-hashChan:
+				hashes = append(hashes, *hash...)
+			case mapPiece := <-mapChan:
+				for k, v := range *mapPiece {
+					_, present := hashMap[k]
+					if present {
+						//fmt.Println("Already present: ", k, " is ", hashMap[k], ". Adding", v)
+						hashMap[k] = append(hashMap[k], v...)
+					} else {
+						//fmt.Println("Setting ", k, " to ", v)
+						hashMap[k] = v
+					}
+				}
+			}
+		}
+	}
+
+	//fmt.Println(hashMap)
 
 	for _, list := range hashMap {
 		//fmt.Println(list)
@@ -232,11 +284,25 @@ func createTree(data *[]int) (tree *Tree, e error) {
 	return
 }
 
-func computeHashes(trees *[]Tree, hashes *[]uint32, hashMap *map[uint32][]int) {
+func computeHash(tree *Tree, hashChan chan uint32) {
+	hash := tree.Hash()
+	hashChan <- hash
+}
+
+func computeHashes(trees *[]Tree, offset int, hashChan chan *[]uint32, mapChan chan *map[uint32][]int) {
+	hashes := make([]uint32, len(*trees))
+	hashMap := make(map[uint32][]int, len(*trees))
 	for i, elem := range *trees {
 		hash := elem.Hash()
-		(*hashes)[i] = hash
-		(*hashMap)[hash] = append((*hashMap)[hash], i)
+		hashes[i] = hash
+		hashMap[hash] = append(hashMap[hash], i+offset)
+	}
+	if hashChan != nil {
+		hashChan <- &hashes
+	}
+	if mapChan != nil {
+		//fmt.Println("putting in chan: ", hashMap)
+		mapChan <- &hashMap
 	}
 }
 
