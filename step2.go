@@ -125,21 +125,18 @@ func main() {
 	// Start timing
 	beginTime := time.Now()
 
-	/*
-	  hashChan := make(chan uint32, len(trees))
-	  for _, tree := range trees {
-	    go computeHash(&tree, hashChan)
-	  }
-	  for i := 0; i < len(trees); i++ {
-	    val := <-hashChan
-	    hashes = append(hashes, val)
-	  }
+ /*
+  // Spawn a goroutine for each tree
+	for i, tree := range trees {
+    go func(tree *Tree, i int){
+      hashes[i] = tree.Hash()
+    }(&tree, i)
+  }
 
-	  for i, hash := range hashes {
-			hashMap[hash] = append(hashMap[hash], i)
-	  }
-	*/
-
+  for i, hash := range hashes {
+    hashMap[hash] = append(hashMap[hash], i)
+  }
+*/
 	if hWorkers == 1 {
 		hashChan := make(chan *[]uint32, len(trees))
 		mapChan := make(chan *map[uint32][]int, len(trees))
@@ -181,7 +178,7 @@ func main() {
 	for _, list := range hashMap {
 		//fmt.Println(list)
 		for i := range list {
-			for j := i; j < len(list); j++ {
+			for j := i + 1; j < len(list); j++ {
 				li := list[i]
 				lj := list[j]
 
@@ -194,6 +191,9 @@ func main() {
 			}
 		}
 	}
+  for i := range matrix {
+    matrix[i][i] = true;
+  }
 	/*
 	  for i := range matrix {
 	    for j := 0; j < len(matrix[0]) - i; j++ {
