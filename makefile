@@ -1,9 +1,12 @@
 WRK=1
+FILE=coarse
+PRNT=
+LCK=
 
 all: build
 	
 run: build
-	./step2.out -input=sample/coarse.txt -hash-workers=$(WRK)
+	./step2.out -input=sample/$(FILE).txt -hash-workers=$(WRK) $(PRNT) $(LCK)
 
 build:
 	go build -o tree.out tree.go
@@ -19,10 +22,12 @@ clean:
 	rm *.out
 
 simple: build
-	./step2.out -input=sample/simple.txt -hash-workers=$(WRK)
+simple: FILE=simple
+simple: run
 
 fine: build
-	./step2.out -input=sample/fine.txt -hash-workers=$(WRK)
+fine: FILE=fine
+fine: run
 
 2wrk: WRK=2
 2wrk: simple

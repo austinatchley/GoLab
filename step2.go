@@ -8,6 +8,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -88,11 +89,21 @@ func (tree *Tree) Hash() uint32 {
 func main() {
 	var hWorkers int
 	flag.IntVar(&hWorkers, "hash-workers", 1, "number of workers on hashing")
-	dWorkers := flag.Int("data-workers", 1, "number of workers on data")
-	cWorkers := flag.Int("comp-workers", 1, "number of workers on comparison")
+
+	var dWorkers int
+	flag.IntVar(&dWorkers, "data-workers", 1, "number of workers on data")
+
+	var cWorkers int
+	flag.IntVar(&cWorkers, "comp-workers", 1, "number of workers on comparison")
 
 	var input string
 	flag.StringVar(&input, "input", "", "path to input file")
+
+	var lockVar bool
+	flag.BoolVar(&lockVar, "l", false, "lock on hashMap write")
+
+	var pMatrix bool
+	flag.BoolVar(&pMatrix, "p", false, "print the resulting equivalency matrix")
 
 	flag.Parse()
 
@@ -122,6 +133,8 @@ func main() {
 		matrix[i] = make([]bool, len(trees))
 	}
 
+	var lock sync.Mutex
+
 	// Start timing
 	beginTime := time.Now()
 
@@ -143,34 +156,49 @@ func main() {
 	}, len(trees))
 	finishedHashMap := make(chan int, 1)
 
-	go insertHashesSingle(pairChan, finishedHashMap, &hashMap, len(trees))
+	if !lockVar {
+		// Start receiving hashes to insert in the map
+		go insertHashesSingle(pairChan, finishedHashMap, &hashMap, len(trees))
+	} else {
+		println("locking!")
+	}
 
 	if hWorkers == 1 {
-		hashChan := make(chan *[]uint32, len(trees))
-		go computeHashesSingle(&trees, 0, hashChan, pairChan)
-		hashes = *(<-hashChan)
+		if lockVar {
+			computeHashesLock(&trees, 0, &hashes, &hashMap, lock)
+		} else {
+			hashChan := make(chan *[]uint32, len(trees))
+			go computeHashesSingle(&trees, 0, hashChan, pairChan)
+			hashes = *(<-hashChan)
+		}
 	} else {
 		if hWorkers > len(trees) {
 			hWorkers = len(trees)
 		}
-
 		treesPerWorker := len(trees) / hWorkers
-		hashChan := make(chan *[]uint32, hWorkers)
 
-		for i := 0; i < hWorkers; i++ {
-			curTrees := trees[treesPerWorker*i : treesPerWorker*(i+1)]
-			//fmt.Println(curTrees)
-			go computeHashesSingle(&curTrees, treesPerWorker*i, hashChan, pairChan)
-		}
+		if lockVar {
+			for i := 0; i < hWorkers; i++ {
+				curTrees := trees[treesPerWorker*i : treesPerWorker*(i+1)]
+				computeHashesLock(&curTrees, treesPerWorker*i, &hashes, &hashMap, lock)
+			}
+		} else {
+			hashChan := make(chan *[]uint32, hWorkers)
 
-		for i := 0; i < hWorkers; i++ {
-			hash := <-hashChan
-			hashes = append(hashes, *hash...)
+			for i := 0; i < hWorkers; i++ {
+				curTrees := trees[treesPerWorker*i : treesPerWorker*(i+1)]
+				//fmt.Println(curTrees)
+				go computeHashesSingle(&curTrees, treesPerWorker*i, hashChan, pairChan)
+			}
+
+			for i := 0; i < hWorkers; i++ {
+				hash := <-hashChan
+				hashes = append(hashes, *hash...)
+			}
+			// Pull from the 'finished' channel
+			<-finishedHashMap
 		}
 	}
-
-  // Pull from the 'finished' channel
-	<-finishedHashMap
 
 	//fmt.Println(hashMap)
 
@@ -206,7 +234,10 @@ func main() {
 	*/
 
 	endTime := time.Now()
-	//printMatrix(&matrix)
+
+	if pMatrix {
+		printMatrix(&matrix)
+	}
 
 	diff := endTime.Sub(beginTime).Nanoseconds()
 	fmt.Println(diff)
@@ -283,20 +314,15 @@ func createTree(data *[]int) (tree *Tree, e error) {
 	return
 }
 
-func computeHashes(trees *[]Tree, offset int, hashChan chan *[]uint32, mapChan chan *map[uint32][]int) {
-	hashes := make([]uint32, len(*trees))
-	hashMap := make(map[uint32][]int, len(*trees))
+func computeHashesLock(trees *[]Tree, offset int, hashes *[]uint32, hashMap *map[uint32][]int, lock sync.Mutex) {
 	for i, elem := range *trees {
 		hash := elem.Hash()
-		hashes[i] = hash
-		hashMap[hash] = append(hashMap[hash], i+offset)
+		(*hashes)[i] = hash
 	}
-	if hashChan != nil {
-		hashChan <- &hashes
-	}
-	if mapChan != nil {
-		//fmt.Println("putting in chan: ", hashMap)
-		mapChan <- &hashMap
+	for i, hash := range *hashes {
+		lock.Lock()
+		(*hashMap)[hash] = append((*hashMap)[hash], i+offset)
+		lock.Unlock()
 	}
 }
 
