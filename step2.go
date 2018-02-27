@@ -192,7 +192,7 @@ func main() {
   }
   endHashing := time.Now()
   hashingTime := endHashing.Sub(startHashing).Nanoseconds()
-  println("hashing time: ", hashingTime)
+  println(hashingTime)
 
 	if !lockVar {
 		// Start receiving hashes to insert in the map
