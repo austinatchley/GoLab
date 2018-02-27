@@ -163,8 +163,6 @@ func main() {
 	finishedHashMap := make(chan int, hWorkers)
 	finishedHashTimer := make(chan int, hWorkers)
 
-	treesPerWorker := len(trees) / hWorkers
-
 	// Create dummy hash slice to time hashing algorithm
 	dummyHashes := make([]uint32, len(trees))
 	startHashing := time.Now()
@@ -172,9 +170,9 @@ func main() {
 		hashChan := make(chan *[]uint32, hWorkers)
 
 		for i := 0; i < hWorkers; i++ {
-			curTrees := trees[treesPerWorker*i : treesPerWorker*(i+1)]
+			curTrees := trees[(len(trees)*i) / hWorkers : (len(trees)*(i+1)) / hWorkers]
 			//fmt.Println(curTrees)
-			go computeHashesParallel(&curTrees, treesPerWorker*i, hashChan)
+			go computeHashesParallel(&curTrees, (len(trees)*i) / hWorkers, hashChan)
 		}
 
 		for i := 0; i < hWorkers; i++ {
@@ -183,8 +181,8 @@ func main() {
 		}
 	} else {
 		for i := 0; i < hWorkers; i++ {
-			curTrees := trees[treesPerWorker*i : treesPerWorker*(i+1)]
-			go computeHashes(&curTrees, treesPerWorker*i, &dummyHashes, finishedHashTimer)
+			curTrees := trees[(len(trees)*i) / hWorkers : (len(trees)*(i+1)) / hWorkers]
+			go computeHashes(&curTrees, (len(trees)*i) / hWorkers, &dummyHashes, finishedHashTimer)
 		}
 		for i := 0; i < hWorkers; i++ {
 			<-finishedHashTimer
@@ -213,8 +211,8 @@ func main() {
 	} else {
 		if lockVar {
 			for i := 0; i < hWorkers; i++ {
-				curTrees := trees[treesPerWorker*i : treesPerWorker*(i+1)]
-				go computeHashesLock(&curTrees, treesPerWorker*i, &hashes, &hashMap, &lock, finishedHashMap)
+			  curTrees := trees[(len(trees)*i) / hWorkers : (len(trees)*(i+1)) / hWorkers]
+				go computeHashesLock(&curTrees, (len(trees)*i) / hWorkers, &hashes, &hashMap, &lock, finishedHashMap)
 			}
 			for i := 0; i < hWorkers; i++ {
 				<-finishedHashMap
@@ -223,17 +221,17 @@ func main() {
 			hashChan := make(chan *[]uint32, hWorkers)
 
 			for i := 0; i < hWorkers; i++ {
-				curTrees := trees[treesPerWorker*i : treesPerWorker*(i+1)]
+			  curTrees := trees[(len(trees)*i) / hWorkers : (len(trees)*(i+1)) / hWorkers]
+        println(curTrees, " goes from ", (len(trees)*i) / hWorkers, "to", (len(trees)*(i+1) / hWorkers))
 				//fmt.Println(curTrees)
-				go computeHashesSingle(&curTrees, treesPerWorker*i, hashChan, pairChan)
+				go computeHashesSingle(&curTrees, (len(trees)*i) / hWorkers, hashChan, pairChan)
 			}
 
 			for i := 0; i < hWorkers; i++ {
 				hash := <-hashChan
 				hashes = append(hashes, *hash...)
 			}
-			// Pull from the 'finished' channel
-			<-finishedHashMap
+      <-finishedHashMap
 		}
 	}
 	endHashingPlusInsert := time.Now()
