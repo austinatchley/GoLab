@@ -16,7 +16,7 @@ if len(sys.argv) < 5:
     )
     sys.exit(0)
 
-args = "./tree.out -hash-workers=" + sys.argv[1] +      \
+args = "./step2.out -hash-workers=" + sys.argv[1] +      \
     "  -data-workers=" + sys.argv[2] +                  \
     " -comp-workers=" + sys.argv[3]  +                  \
     " -input=" + sys.argv[4]
@@ -49,15 +49,15 @@ def run(arg_list):
     result = output.decode('utf-8')
 
     f = StringIO(result)
-    reader = csv.reader(f, delimiter=',')
+    reader = csv.reader(f, delimiter='\n')
     data = []
     for row in reader:
         data.append(' '.join(element.rstrip() for element in row))
 
     print('Data:\t', data)
+    data = [float(x) for x in data]
 
-    return float(data[0])
-
+    return data
 
 def control_test():
     arg_list = args.split()
@@ -66,22 +66,24 @@ def control_test():
     result = output.decode('utf-8')
 
     f = StringIO(result)
-    reader = csv.reader(f, delimiter=',')
+    reader = csv.reader(f, delimiter='\n')
     data = []
     for row in reader:
         data.append(' '.join(element.rstrip() for element in row))
 
     print("data:\t", data)
-    return float(data[0])
+    data = [float(x) for x in data]
 
+    return data
 
 print("Control")
 control_test()
 control = control_test()
 print("control: ", control)
 
-both = 0.0
-both_spin = 0.0
+hash_time = 0.0
+hash_insert_time = 0.0
+total_time = 0.0
 
 tests_completed = 0
 
@@ -89,14 +91,21 @@ for i in range(TESTS):
     print("\nIteration ", i)
     val = do_test(i, h, d, c)
     if val != -1:
-        both += val
+        hash_time += val[0]
+        hash_insert_time += val[1]
+        total_time += val[2]
+
         tests_completed += 1
 
-average = both / tests_completed
-print(average)
+average_hash = hash_time / tests_completed
+average_hash_insert = hash_insert_time / tests_completed
+average_total = total_time / tests_completed
+print(average_hash)
+print(average_hash_insert)
+print(average_total)
 
 print('\nSpeedups:')
-print(control / average)
+print(control[2] / average_total)
 
 
 
