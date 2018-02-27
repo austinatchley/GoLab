@@ -126,27 +126,34 @@ func main() {
 	beginTime := time.Now()
 
 	/*
-	  // Spawn a goroutine for each tree
-		for i, tree := range trees {
-	    go func(tree *Tree, i int){
-	      hashes[i] = tree.Hash()
-	    }(&tree, i)
-	  }
+		  // Spawn a goroutine for each tree
+			for i, tree := range trees {
+		    go func(tree *Tree, i int){
+		      hashes[i] = tree.Hash()
+		    }(&tree, i)
+		  }
 
-	  for i, hash := range hashes {
-	    hashMap[hash] = append(hashMap[hash], i)
-	  }
+		  for i, hash := range hashes {
+		    hashMap[hash] = append(hashMap[hash], i)
+		  }
 	*/
 	pairChan := make(chan struct {
 		uint32
 		int
 	}, len(trees))
 	finishedHashMap := make(chan int, 1)
+
+	go insertHashesSingle(pairChan, finishedHashMap, &hashMap, len(trees))
+
 	if hWorkers == 1 {
 		hashChan := make(chan *[]uint32, len(trees))
 		go computeHashesSingle(&trees, 0, hashChan, pairChan)
 		hashes = *(<-hashChan)
 	} else {
+		if hWorkers > len(trees) {
+			hWorkers = len(trees)
+		}
+
 		treesPerWorker := len(trees) / hWorkers
 		hashChan := make(chan *[]uint32, hWorkers)
 
@@ -161,22 +168,9 @@ func main() {
 			hashes = append(hashes, *hash...)
 		}
 	}
-	go insertHashesSingle(pairChan, finishedHashMap, &hashMap, len(trees))
+
+  // Pull from the 'finished' channel
 	<-finishedHashMap
-	/*
-	    case mapPiece := <-mapChan:
-					for k, v := range *mapPiece {
-						_, present := hashMap[k]
-						if present {
-							//fmt.Println("Already present: ", k, " is ", hashMap[k], ". Adding", v)
-							hashMap[k] = append(hashMap[k], v...)
-						} else {
-							//fmt.Println("Setting ", k, " to ", v)
-							hashMap[k] = v
-						}
-					}
-		}
-	*/
 
 	//fmt.Println(hashMap)
 
@@ -317,7 +311,7 @@ func computeHashesSingle(trees *[]Tree, offset int, hashChan chan *[]uint32, pai
 		pairChan <- struct {
 			uint32
 			int
-		}{hash, i}
+		}{hash, i + offset}
 	}
 	if hashChan != nil {
 		hashChan <- &hashes
@@ -327,12 +321,12 @@ func computeHashesSingle(trees *[]Tree, offset int, hashChan chan *[]uint32, pai
 func insertHashesSingle(pairChan chan struct {
 	uint32
 	int
-}, finishedHashMap chan int, hashMap *map[uint32][]int, length int) {
+}, finished chan int, hashMap *map[uint32][]int, length int) {
 	for i := 0; i < length; i++ {
 		pair := <-pairChan
 		(*hashMap)[pair.uint32] = append((*hashMap)[pair.uint32], pair.int)
 	}
-	finishedHashMap <- 1
+	finished <- 1
 }
 
 /*
