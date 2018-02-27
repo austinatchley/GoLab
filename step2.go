@@ -156,7 +156,7 @@ func main() {
 		uint32
 		int
 	}, len(trees))
-	
+
   if hWorkers > len(trees) {
 	  hWorkers = len(trees)
 	}
@@ -192,8 +192,10 @@ func main() {
   }
   endHashing := time.Now()
   hashingTime := endHashing.Sub(startHashing).Nanoseconds()
-  println(hashingTime)
+  fmt.Println(hashingTime)
 
+  // Actually compute the hashing and insert in the map
+  beginHashingPlusInsert := time.Now()
 	if !lockVar {
 		// Start receiving hashes to insert in the map
 		go insertHashesSingle(pairChan, finishedHashMap, &hashMap, len(trees))
@@ -234,6 +236,9 @@ func main() {
 			<-finishedHashMap
 		}
 	}
+  endHashingPlusInsert := time.Now()
+  hashingPlusInsertTime := endHashingPlusInsert.Sub(beginHashingPlusInsert).Nanoseconds()
+  fmt.Println(hashingPlusInsertTime);
 
 	//fmt.Println(hashMap)
 
