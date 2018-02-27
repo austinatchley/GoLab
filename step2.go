@@ -154,18 +154,17 @@ func main() {
 		uint32
 		int
 	}, len(trees))
-	finishedHashMap := make(chan int, 1)
+	finishedHashMap := make(chan int)
 
 	if !lockVar {
 		// Start receiving hashes to insert in the map
 		go insertHashesSingle(pairChan, finishedHashMap, &hashMap, len(trees))
-	} else {
-		println("locking!")
 	}
 
 	if hWorkers == 1 {
 		if lockVar {
-			computeHashesLock(&trees, 0, &hashes, &hashMap, lock)
+			computeHashesLock(&trees, 0, &hashes, &hashMap, &lock, finishedHashMap)
+			<-finishedHashMap
 		} else {
 			hashChan := make(chan *[]uint32, len(trees))
 			go computeHashesSingle(&trees, 0, hashChan, pairChan)
@@ -180,7 +179,11 @@ func main() {
 		if lockVar {
 			for i := 0; i < hWorkers; i++ {
 				curTrees := trees[treesPerWorker*i : treesPerWorker*(i+1)]
-				computeHashesLock(&curTrees, treesPerWorker*i, &hashes, &hashMap, lock)
+				go computeHashesLock(&curTrees, treesPerWorker*i, &hashes, &hashMap, &lock, finishedHashMap)
+
+			}
+			for i := 0; i < hWorkers; i++ {
+				<-finishedHashMap
 			}
 		} else {
 			hashChan := make(chan *[]uint32, hWorkers)
@@ -314,16 +317,17 @@ func createTree(data *[]int) (tree *Tree, e error) {
 	return
 }
 
-func computeHashesLock(trees *[]Tree, offset int, hashes *[]uint32, hashMap *map[uint32][]int, lock sync.Mutex) {
+func computeHashesLock(trees *[]Tree, offset int, hashes *[]uint32, hashMap *map[uint32][]int, lock *sync.Mutex, finished chan int) {
 	for i, elem := range *trees {
 		hash := elem.Hash()
-		(*hashes)[i] = hash
+		(*hashes)[i+offset] = hash
 	}
-	for i, hash := range *hashes {
+	for i := offset; i < offset+len(*trees); i++ {
 		lock.Lock()
-		(*hashMap)[hash] = append((*hashMap)[hash], i+offset)
+		(*hashMap)[(*hashes)[i]] = append((*hashMap)[(*hashes)[i]], i)
 		lock.Unlock()
 	}
+	finished <- 1
 }
 
 func computeHashesSingle(trees *[]Tree, offset int, hashChan chan *[]uint32, pairChan chan struct {
