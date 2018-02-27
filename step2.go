@@ -1,12 +1,12 @@
 package main
 
 import (
-  "runtime"
 	"bufio"
 	"errors"
 	"flag"
 	"fmt"
 	"os"
+	"runtime"
 	"strconv"
 	"strings"
 	"sync"
@@ -136,7 +136,7 @@ func main() {
 
 	var lock sync.Mutex
 
-  runtime.GC()
+	runtime.GC()
 	// Start timing
 	beginTime := time.Now()
 
@@ -157,22 +157,22 @@ func main() {
 		int
 	}, len(trees))
 
-  if hWorkers > len(trees) {
-	  hWorkers = len(trees)
+	if hWorkers > len(trees) {
+		hWorkers = len(trees)
 	}
 	finishedHashMap := make(chan int, hWorkers)
-  finishedHashTimer := make(chan int, hWorkers)
+	finishedHashTimer := make(chan int, hWorkers)
 
 	treesPerWorker := len(trees) / hWorkers
 
-  // Create dummy hash slice to time hashing algorithm
-  dummyHashes := make([]uint32, len(trees))
-  startHashing := time.Now()
-  if !lockVar {
-    hashChan := make(chan *[]uint32, hWorkers)
+	// Create dummy hash slice to time hashing algorithm
+	dummyHashes := make([]uint32, len(trees))
+	startHashing := time.Now()
+	if !lockVar {
+		hashChan := make(chan *[]uint32, hWorkers)
 
 		for i := 0; i < hWorkers; i++ {
-		  curTrees := trees[treesPerWorker*i : treesPerWorker*(i+1)]
+			curTrees := trees[treesPerWorker*i : treesPerWorker*(i+1)]
 			//fmt.Println(curTrees)
 			go computeHashesParallel(&curTrees, treesPerWorker*i, hashChan)
 		}
@@ -181,21 +181,21 @@ func main() {
 			hash := <-hashChan
 			dummyHashes = append(dummyHashes, *hash...)
 		}
-  } else {
-    for i := 0; i < hWorkers; i++ {
-      curTrees := trees[treesPerWorker*i : treesPerWorker*(i+1)]
-      go computeHashes(&curTrees, treesPerWorker*i, &dummyHashes, finishedHashTimer)
-    }
-    for i := 0; i < hWorkers; i++ {
-      <-finishedHashTimer
-    }
-  }
-  endHashing := time.Now()
-  hashingTime := endHashing.Sub(startHashing).Nanoseconds()
-  fmt.Println(hashingTime)
+	} else {
+		for i := 0; i < hWorkers; i++ {
+			curTrees := trees[treesPerWorker*i : treesPerWorker*(i+1)]
+			go computeHashes(&curTrees, treesPerWorker*i, &dummyHashes, finishedHashTimer)
+		}
+		for i := 0; i < hWorkers; i++ {
+			<-finishedHashTimer
+		}
+	}
+	endHashing := time.Now()
+	hashingTime := endHashing.Sub(startHashing).Nanoseconds()
+	fmt.Println(hashingTime)
 
-  // Actually compute the hashing and insert in the map
-  beginHashingPlusInsert := time.Now()
+	// Actually compute the hashing and insert in the map
+	beginHashingPlusInsert := time.Now()
 	if !lockVar {
 		// Start receiving hashes to insert in the map
 		go insertHashesSingle(pairChan, finishedHashMap, &hashMap, len(trees))
@@ -236,9 +236,9 @@ func main() {
 			<-finishedHashMap
 		}
 	}
-  endHashingPlusInsert := time.Now()
-  hashingPlusInsertTime := endHashingPlusInsert.Sub(beginHashingPlusInsert).Nanoseconds()
-  fmt.Println(hashingPlusInsertTime);
+	endHashingPlusInsert := time.Now()
+	hashingPlusInsertTime := endHashingPlusInsert.Sub(beginHashingPlusInsert).Nanoseconds()
+	fmt.Println(hashingPlusInsertTime)
 
 	//fmt.Println(hashMap)
 
@@ -355,15 +355,15 @@ func createTree(data *[]int) (tree *Tree, e error) {
 }
 
 func computeHashes(trees *[]Tree, offset int, hashes *[]uint32, finished chan int) {
-  for i, elem := range *trees {
-    hash := elem.Hash()
-    (*hashes)[i+offset] = hash
-  }
-  finished <- 1
+	for i, elem := range *trees {
+		hash := elem.Hash()
+		(*hashes)[i+offset] = hash
+	}
+	finished <- 1
 }
 
 func computeHashesParallel(trees *[]Tree, offset int, hashChan chan *[]uint32) {
-  hashes := make([]uint32, len(*trees))
+	hashes := make([]uint32, len(*trees))
 	for i, elem := range *trees {
 		hash := elem.Hash()
 		hashes[i] = hash
@@ -379,7 +379,7 @@ func computeHashesLock(trees *[]Tree, offset int, hashes *[]uint32, hashMap *map
 		(*hashes)[i+offset] = hash
 	}
 
-  for i := offset; i < offset+len(*trees); i++ {
+	for i := offset; i < offset+len(*trees); i++ {
 		lock.Lock()
 		(*hashMap)[(*hashes)[i]] = append((*hashMap)[(*hashes)[i]], i)
 		lock.Unlock()
