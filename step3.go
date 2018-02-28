@@ -277,7 +277,6 @@ func main() {
 		for _, list := range hashMap {
 			for i := range list {
 				for j := i + 1; j < len(list); j++ {
-					println("comparing", i, "to", j)
 					treeChan <- Pair{list[i], list[j]}
 				}
 			}
@@ -287,15 +286,6 @@ func main() {
 		}
 	}
 	wg.Wait()
-	println("Begin Map")
-	for _, list := range hashMap {
-		print("\n[")
-		for _, i := range list {
-			print(i, " ")
-		}
-		print("]\n")
-	}
-	println("End Map")
 
 	endTime := time.Now()
 

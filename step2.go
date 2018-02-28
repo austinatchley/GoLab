@@ -270,16 +270,6 @@ func main() {
 	  }
 	*/
 
-	println("Begin Map")
-	for _, list := range hashMap {
-		print("\n[")
-		for _, i := range list {
-			print(i, " ")
-		}
-		print("]\n")
-	}
-	println("End Map")
-
 	endTime := time.Now()
 
 	if pMatrix {
