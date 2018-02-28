@@ -6,11 +6,12 @@ LCK=
 all: build
 	
 run: build
-	./step2.out -input=sample/$(FILE).txt -hash-workers=$(WRK) $(PRNT) $(LCK)
+	./step3.out -input=sample/$(FILE).txt -hash-workers=$(WRK) $(PRNT) $(LCK)
 
 build:
 	go build -o tree.out tree.go
 	go build -o step2.out step2.go
+	go build -o step3.out step3.go
 
 fmt:
 	go fmt *.go
@@ -30,4 +31,4 @@ fine: FILE=fine
 fine: run
 
 2wrk: WRK=2
-2wrk: simple
+3wrk: simple
