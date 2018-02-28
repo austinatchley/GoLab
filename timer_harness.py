@@ -10,28 +10,34 @@ from io import StringIO
 
 TESTS = 2
 
-if len(sys.argv) < 5:
+if len(sys.argv) < 4:
     print(
-        "./harness [hash-workers] [data-workers] [comparison-workers] [input]"
+        "./harness [hash-workers] [data-workers] [comparison-workers]"
     )
     sys.exit(0)
 
-args = "./step2.out -hash-workers=" + sys.argv[1] +      \
+args = "./step2.out -hash-workers=" +      \
     "  -data-workers=" + sys.argv[2] +                  \
     " -comp-workers=" + sys.argv[3]  +                  \
-    " -input=" + sys.argv[4]
+    " -input="
 
-h = sys.argv[1]
-d = sys.argv[2]
-c = sys.argv[3]
-i = sys.argv[4]
+h = int(sys.argv[1])
+d = int(sys.argv[2])
+c = int(sys.argv[3])
 
-times = []
-times_spin = []
+hash_times = []
+hash_insert_times = []
+total_times = []
 
+hash_times_l = []
+hash_insert_times_l = []
+total_times_l = []
 
-def do_test(i, h, d, c):
+def do_test(i, h, d, c, extra):
     arg_list = args.split()
+    arg_list[1] += str(h)
+    arg_list[4] += str(i)
+    arg_list.append(str(extra))
 
     print(" ".join(str(val) for val in arg_list))
 
@@ -59,8 +65,10 @@ def run(arg_list):
 
     return data
 
-def control_test():
+def control_test(i):
     arg_list = args.split()
+    arg_list[1] += "1"
+    arg_list[4] += str(i)
 
     output = subprocess.check_output(arg_list)
     result = output.decode('utf-8')
@@ -76,38 +84,165 @@ def control_test():
 
     return data
 
+def plot_bars(barGroups, barNames, groupNames, colors, ylabel="", title="", width=0.8):
+    """Plot a grouped bar chart
+    barGroups  - list of groups, where each group is a list of bar heights
+    barNames   - list containing the name of each bar within any group
+    groupNames - list containing the name of each group
+    colors     - list containing the color for each bar within a group
+    ylabel     - label for the y-axis
+    title      - title
+    """
+    fig, ax = plt.subplots()
+    offset = lambda items, off: [x + off for x in items]
+
+    maxlen = max(len(group) for group in barGroups)
+    xvals = range(len(barGroups))
+    
+    for i, bars in enumerate(zip(*barGroups)):
+        print(bars)
+        plt.bar(offset(xvals, i * width/maxlen), bars, width/maxlen, color=colors[i])
+
+    ax.set_ylabel(ylabel)
+    ax.set_title(title)
+    ax.set_xticks(offset(xvals, width / 2))
+    ax.set_xticklabels(groupNames)
+
+    # Shrink current axis by 20%
+    box = ax.get_position()
+    ax.set_position([box.x0, box.y0, box.width * 0.8, box.height])
+
+    # Put a legend to the right of the current axis
+    ax.legend(barNames, loc="upper left", bbox_to_anchor=(1, 1))
+
+
+
 print("Control")
-control_test()
-control = control_test()
-print("control: ", control)
+control_test("sample/coarse.txt")
+control = control_test("sample/coarse.txt")
+control_test("sample/fine.txt")
+control_fine = control_test("sample/fine.txt")
+print("control coarse: ", control)
+print("control fine: ", control_fine)
 
-hash_time = 0.0
-hash_insert_time = 0.0
-total_time = 0.0
+nums = []
 
-tests_completed = 0
+workers = 1
+it = 0
+while workers <= h:
+    nums.append(workers)
+    hash_time = 0.0
+    hash_insert_time = 0.0
+    total_time = 0.0
 
-for i in range(TESTS):
-    print("\nIteration ", i)
-    val = do_test(i, h, d, c)
-    if val != -1:
-        hash_time += val[0]
-        hash_insert_time += val[1]
-        total_time += val[2]
+    tests_completed = 0
 
-        tests_completed += 1
+    for i in range(TESTS):
+        print("\nIteration ", i)
+        val = do_test("sample/coarse.txt", workers, d, c, "")
+        if val != -1:
+            hash_time += val[0]
+            hash_insert_time += val[1]
+            total_time += val[2]
 
-average_hash = hash_time / tests_completed
-average_hash_insert = hash_insert_time / tests_completed
-average_total = total_time / tests_completed
-print(average_hash)
-print(average_hash_insert)
-print(average_total)
+            tests_completed += 1
+
+    average_hash = hash_time / tests_completed
+    average_hash_insert = hash_insert_time / tests_completed
+    average_total = total_time / tests_completed
+
+    hash_times.insert(it, control[0] / average_hash)
+    hash_insert_times.insert(it, control[1] / average_hash_insert)
+    total_times.insert(it, control[2] / average_total)
+
+    # Do the fine test now
+    hash_time = 0.0
+    hash_insert_time = 0.0
+    total_time = 0.0
+
+    tests_completed = 0
+
+    for i in range(TESTS):
+        print("\nIteration ", i)
+        val = do_test("sample/fine.txt", workers, d, c, "-l")
+        if val != -1:
+            hash_time += val[0]
+            hash_insert_time += val[1]
+            total_time += val[2]
+
+            tests_completed += 1
+
+    average_hash = hash_time / tests_completed
+    average_hash_insert = hash_insert_time / tests_completed
+    average_total = total_time / tests_completed
+
+    hash_times_l.insert(it, control_fine[0] / average_hash)
+    hash_insert_times_l.insert(it, control_fine[1] / average_hash_insert)
+    total_times_l.insert(it, control_fine[2] / average_total)
+
+    workers = workers * 2
+    it+=1
 
 print('\nSpeedups:')
-print(control[2] / average_total)
+
+print("Coarse:\nHashing")
+for i in range(0, len(hash_times)):
+    print(i, hash_times[i])
+
+print("Hashing+Insertion")
+for i in range(0, len(hash_insert_times)):
+    print(i, hash_insert_times[i])
+
+print("Total")
+for i in range(0, len(total_times)):
+    print(i, total_times[i])
+
+print("Fine:\nHashing")
+for i in range(0, len(hash_times_l)):
+    print(i, hash_times_l[i])
+
+print("Hashing+Insertion")
+for i in range(0, len(hash_insert_times_l)):
+    print(i, hash_insert_times_l[i])
+
+print("Total")
+for i in range(0, len(total_times_l)):
+    print(i, total_times_l[i])
 
 
+"""
+plt.bar(nums, hash_times) 
+plt.show()
+
+plt.bar(nums, hash_insert_times)
+plt.show()
+
+plt.bar(nums, total_times)
+plt.show()
+"""
+
+plot_bars([control, control_fine], ["Hash Time", "Hash and Insert Time", "Total Time"], ["coarse", "fine"], ["#5caec4", "#c0cccf", "#2f3638"], "Time (nanoseconds)", "Sequential Runtime")
+plt.savefig("sequential.pdf", bbox_inches='tight', format='pdf')
+plt.show()
+plt.close()
+
+cm = plt.get_cmap('plasma')
+colors = [cm(i / len(nums)) for i in range(0, len(nums))]
+
+plot_bars([hash_times, hash_times_l], [str(num) + " Workers" for num in nums], ["coarse", "fine"], colors, "Speedup", "Step 2: Hash Times")
+plt.savefig("hash.pdf", bbox_inches='tight', format='pdf')
+plt.show()
+plt.close()
+
+plot_bars([hash_insert_times, hash_insert_times_l], [str(num) + " Workers" for num in nums], ["coarse", "fine"], colors, "Speedup", "Step 2: Hash+Insert Times")
+plt.savefig("hashinsert.pdf", bbox_inches='tight', format='pdf')
+plt.show()
+plt.close()
+
+plot_bars([total_times, total_times_l], [str(num) + " Workers" for num in nums], ["coarse", "fine"], colors, "Speedup", "Step 2: Total Times")
+plt.savefig("total.pdf", bbox_inches='tight', format='pdf')
+plt.show()
+plt.close()
 
 
 """
