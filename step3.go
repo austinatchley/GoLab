@@ -24,8 +24,8 @@ type Tree struct {
 }
 
 type Pair struct {
-  i int
-  j int
+	i int
+	j int
 }
 
 /*
@@ -243,51 +243,51 @@ func main() {
 	fmt.Println(hashingPlusInsertTime)
 
 	//fmt.Println(hashMap)
-  var wg sync.WaitGroup
+	var wg sync.WaitGroup
 
-  // Fill diagonal with true
+	// Fill diagonal with true
 	for i := range matrix {
 		matrix[i][i] = true
 	}
 
-  if cWorkers == 1 {
-    for _, list := range hashMap {
-      //fmt.Println(list)
-      for i := range list {
-        for j := i + 1; j < len(list); j++ {
-          wg.Add(1)
-          go func(li, lj int) {
-            defer wg.Done()
-            // Compare the supposed equivalent trees
-            result := SameTraverse(&trees[li], &trees[lj])
+	if cWorkers == 1 {
+		for _, list := range hashMap {
+			//fmt.Println(list)
+			for i := range list {
+				for j := i + 1; j < len(list); j++ {
+					wg.Add(1)
+					go func(li, lj int) {
+						defer wg.Done()
+						// Compare the supposed equivalent trees
+						result := SameTraverse(&trees[li], &trees[lj])
 
-            // Mirror result to cut down on computation
-            matrix[li][lj] = result
-            matrix[lj][li] = result
-          }(list[i], list[j])
-        }
-      }
-    }
-  } else {
-    treeChan := make(chan Pair, len(hashMap) / 2)
-    wg.Add(cWorkers)
-    for i := 0; i < cWorkers; i++ {
-      go parallelComparison(treeChan, &trees, &matrix, &wg)
-    }
+						// Mirror result to cut down on computation
+						matrix[li][lj] = result
+						matrix[lj][li] = result
+					}(list[i], list[j])
+				}
+			}
+		}
+	} else {
+		treeChan := make(chan Pair, len(hashMap)/2)
+		wg.Add(cWorkers)
+		for i := 0; i < cWorkers; i++ {
+			go parallelComparison(treeChan, &trees, &matrix, &wg)
+		}
 
-    for _, list := range hashMap {
-      for i := range list {
-        for j := i + 1; j < len(list); j++ {
-          println("comparing", i, "to", j)
-          treeChan <- Pair{i, j}
-        }
-      }
-    }
-    for i := 0; i < cWorkers; i++ {
-      treeChan <- Pair{-1, -1}
-    }
-  }
-  wg.Wait()
+		for _, list := range hashMap {
+			for i := range list {
+				for j := i + 1; j < len(list); j++ {
+					println("comparing", i, "to", j)
+					treeChan <- Pair{i, j}
+				}
+			}
+		}
+		for i := 0; i < cWorkers; i++ {
+			treeChan <- Pair{-1, -1}
+		}
+	}
+	wg.Wait()
 
 	endTime := time.Now()
 
@@ -315,12 +315,12 @@ func _walk(t *Tree, ch chan int) {
 func _walk_preempt(t *Tree, ch, kill chan int) {
 	if t != nil {
 		_walk_preempt(t.Left, ch, kill)
-    select{
-    case <-kill:
-      return
-    default:
-		  ch <- t.Value
-    }
+		select {
+		case <-kill:
+			return
+		default:
+			ch <- t.Value
+		}
 		_walk_preempt(t.Right, ch, kill)
 	}
 }
@@ -330,11 +330,11 @@ func _walk_preempt(t *Tree, ch, kill chan int) {
 // If a kill chan is provided, we will preempt
 // whenever a value appears in kill
 func Walk(t *Tree, ch, kill chan int) {
-  if kill == nil {
-    _walk(t, ch)
-  } else {
-    _walk_preempt(t, ch, kill)
-  }
+	if kill == nil {
+		_walk(t, ch)
+	} else {
+		_walk_preempt(t, ch, kill)
+	}
 	close(ch)
 }
 
@@ -355,8 +355,7 @@ func Same(t1, t2 *Tree, hash1 uint32, i2 int, hashMap *map[uint32][]int) bool {
 func SameTraverse(t1, t2 *Tree) bool {
 	c1 := make(chan int)
 	c2 := make(chan int)
-  kill := make(chan int, 2)
-
+	kill := make(chan int, 2)
 
 	go Walk(t1, c1, kill)
 	go Walk(t2, c2, kill)
@@ -366,8 +365,8 @@ func SameTraverse(t1, t2 *Tree) bool {
 		v2, ok2 := <-c2
 
 		if v1 != v2 || ok1 != ok2 {
-      kill <- 1
-      kill <- 2
+			kill <- 1
+			kill <- 2
 			return false
 		}
 
@@ -375,8 +374,8 @@ func SameTraverse(t1, t2 *Tree) bool {
 			break
 		}
 	}
-  kill <- 1
-  kill <- 2
+	kill <- 1
+	kill <- 2
 	return true
 }
 
@@ -458,25 +457,25 @@ func insertHashesSingle(pairChan chan struct {
 }
 
 func parallelComparison(treeChan chan Pair, trees *[]Tree, matrix *[][]bool, wg *sync.WaitGroup) {
-  for {
-    pair, ok := <-treeChan
-    if !ok {
-      break
-    }
-    i := pair.i
-    j := pair.j
+	for {
+		pair, ok := <-treeChan
+		if !ok {
+			break
+		}
+		i := pair.i
+		j := pair.j
 
-    if i == -1 && j == -1 {
-      break
-    }
+		if i == -1 && j == -1 {
+			break
+		}
 
-    result := SameTraverse(&(*trees)[i], &(*trees)[j])
-    println(i, j, "-> ", result)
+		result := SameTraverse(&(*trees)[i], &(*trees)[j])
+		println(i, j, "-> ", result)
 
-    (*matrix)[i][j] = result
-    (*matrix)[j][i] = result
-  }
-  wg.Done()
+		(*matrix)[i][j] = result
+		(*matrix)[j][i] = result
+	}
+	wg.Done()
 }
 
 /*
@@ -524,4 +523,3 @@ func printMatrix(matrix *[][]bool) {
 func computeBounds(lenTrees int, i int, hWorkers int) int {
 	return (lenTrees * i) / hWorkers
 }
-
