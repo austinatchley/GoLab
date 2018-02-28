@@ -170,7 +170,7 @@ func main() {
 		hashChan := make(chan *[]uint32, hWorkers)
 
 		for i := 0; i < hWorkers; i++ {
-			curTrees := trees[computeBounds(len(trees), i, hWorkers) : computeBounds(len(trees), i+1, hWorkers)]
+			curTrees := trees[computeBounds(len(trees), i, hWorkers):computeBounds(len(trees), i+1, hWorkers)]
 			//fmt.Println(curTrees)
 			go computeHashesParallel(&curTrees, computeBounds(len(trees), i, hWorkers), hashChan)
 		}
@@ -181,7 +181,7 @@ func main() {
 		}
 	} else {
 		for i := 0; i < hWorkers; i++ {
-			curTrees := trees[computeBounds(len(trees), i, hWorkers) : computeBounds(len(trees), i+1, hWorkers)]
+			curTrees := trees[computeBounds(len(trees), i, hWorkers):computeBounds(len(trees), i+1, hWorkers)]
 			go computeHashes(&curTrees, computeBounds(len(trees), i, hWorkers), &dummyHashes, finishedHashTimer)
 		}
 		for i := 0; i < hWorkers; i++ {
@@ -211,7 +211,7 @@ func main() {
 	} else {
 		if lockVar {
 			for i := 0; i < hWorkers; i++ {
-			  curTrees := trees[computeBounds(len(trees), i, hWorkers) : computeBounds(len(trees), i+1, hWorkers)]
+				curTrees := trees[computeBounds(len(trees), i, hWorkers):computeBounds(len(trees), i+1, hWorkers)]
 				go computeHashesLock(&curTrees, computeBounds(len(trees), i, hWorkers), &hashes, &hashMap, &lock, finishedHashMap)
 			}
 			for i := 0; i < hWorkers; i++ {
@@ -221,7 +221,7 @@ func main() {
 			hashChan := make(chan *[]uint32, hWorkers)
 
 			for i := 0; i < hWorkers; i++ {
-			  curTrees := trees[computeBounds(len(trees), i, hWorkers) : computeBounds(len(trees), i+1, hWorkers)]
+				curTrees := trees[computeBounds(len(trees), i, hWorkers):computeBounds(len(trees), i+1, hWorkers)]
 				//fmt.Println(curTrees)
 				go computeHashesSingle(&curTrees, computeBounds(len(trees), i, hWorkers), hashChan, pairChan)
 			}
@@ -230,7 +230,7 @@ func main() {
 				hash := <-hashChan
 				hashes = append(hashes, *hash...)
 			}
-      <-finishedHashMap
+			<-finishedHashMap
 		}
 	}
 	endHashingPlusInsert := time.Now()
@@ -456,5 +456,5 @@ func printMatrix(matrix *[][]bool) {
 }
 
 func computeBounds(lenTrees int, i int, hWorkers int) int {
-  return (lenTrees * i) / hWorkers
+	return (lenTrees * i) / hWorkers
 }
