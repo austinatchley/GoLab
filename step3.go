@@ -468,7 +468,6 @@ func parallelComparison(treeChan chan Pair, trees *[]Tree, matrix *[][]bool, wg 
 		}
 
 		result := SameTraverse(&(*trees)[i], &(*trees)[j])
-		println(i, j, "-> ", result)
 
 		(*matrix)[i][j] = result
 		(*matrix)[j][i] = result

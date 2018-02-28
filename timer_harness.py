@@ -16,10 +16,16 @@ if len(sys.argv) < 4:
     )
     sys.exit(0)
 
-args = "./step2.out -hash-workers=" +      \
-    "  -data-workers=" + sys.argv[2] +                  \
-    " -comp-workers=" + sys.argv[3]  +                  \
+args = "./step2.out -hash-workers=" +       \
+    "  -data-workers=" +                    \
+    " -comp-workers="  +                    \
     " -input="
+
+args_3 = "./step3.out -hash-workers=" +     \
+    "  -data-workers=" +                    \
+    " -comp-workers="  +                    \
+    " -input="
+
 
 h = int(sys.argv[1])
 d = int(sys.argv[2])
@@ -33,9 +39,11 @@ hash_times_l = []
 hash_insert_times_l = []
 total_times_l = []
 
-def do_test(i, h, d, c, extra):
-    arg_list = args.split()
+def do_test(arg_string, i, h, d, c, extra):
+    arg_list = arg_string.split()
     arg_list[1] += str(h)
+    arg_list[2] += str(d)
+    arg_list[3] += str(c)
     arg_list[4] += str(i)
     arg_list.append(str(extra))
 
@@ -68,6 +76,8 @@ def run(arg_list):
 def control_test(i):
     arg_list = args.split()
     arg_list[1] += "1"
+    arg_list[2] += "1"
+    arg_list[3] += "1"
     arg_list[4] += str(i)
 
     output = subprocess.check_output(arg_list)
@@ -116,7 +126,7 @@ def plot_bars(barGroups, barNames, groupNames, colors, ylabel="", title="", widt
     ax.legend(barNames, loc="upper left", bbox_to_anchor=(1, 1))
 
 
-
+print(h, d, c)
 print("Control")
 control_test("sample/coarse.txt")
 control = control_test("sample/coarse.txt")
@@ -129,6 +139,7 @@ nums = []
 
 workers = 1
 it = 0
+
 while workers <= h:
     nums.append(workers)
     hash_time = 0.0
@@ -139,7 +150,7 @@ while workers <= h:
 
     for i in range(TESTS):
         print("\nIteration ", i)
-        val = do_test("sample/coarse.txt", workers, d, c, "")
+        val = do_test(args, "sample/coarse.txt", workers, d, c, "")
         if val != -1:
             hash_time += val[0]
             hash_insert_time += val[1]
@@ -164,7 +175,7 @@ while workers <= h:
 
     for i in range(TESTS):
         print("\nIteration ", i)
-        val = do_test("sample/fine.txt", workers, d, c, "")
+        val = do_test(args, "sample/fine.txt", workers, d, c, "")
         if val != -1:
             hash_time += val[0]
             hash_insert_time += val[1]
@@ -179,6 +190,26 @@ while workers <= h:
     hash_times_l.insert(it, control_fine[0] / average_hash)
     hash_insert_times_l.insert(it, control_fine[1] / average_hash_insert)
     total_times_l.insert(it, control_fine[2] / average_total)
+
+    workers = workers * 2
+    it+=1
+
+average_compare = 0
+compare_times = []
+workers = 1
+it = 0
+while workers <= h:
+    compare_time = 0
+    for i in range(TESTS):
+        print("\nIteration ", i)
+        val = do_test(args_3, "sample/fine.txt", 4, d, workers, "")
+        if val != -1:
+            compare_time += val[2] - val[1]
+            tests_completed += 1
+
+    average_compare = compare_time / tests_completed
+
+    compare_times.insert(it, (control_fine[2] - control_fine[0]) / average_compare)
 
     workers = workers * 2
     it+=1
@@ -247,6 +278,10 @@ plt.savefig("total.pdf", bbox_inches='tight', format='pdf')
 #plt.show()
 plt.close()
 
+plot_bars([compare_times], [], [str(num) + " Threads" for num in nums], colors, "Speedup", "Step 3: Tree Comparison Speedup")
+plt.savefig("compare.pdf", bbox_inches='tight', format='pdf')
+plt.show()
+plt.close()
 
 """
 for core in range(1, cores + 1):
