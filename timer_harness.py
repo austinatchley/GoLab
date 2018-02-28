@@ -221,27 +221,30 @@ plt.bar(nums, total_times)
 plt.show()
 """
 
-plot_bars([control, control_fine], ["Hash Time", "Hash and Insert Time", "Total Time"], ["coarse", "fine"], ["#5caec4", "#c0cccf", "#2f3638"], "Time (nanoseconds)", "Sequential Runtime")
+control_data = [control[0], control[1], control[2] - control[1]]
+control_fine_data = [control_fine[0], control_fine[1], control_fine[2] - control_fine[1]]
+
+plot_bars([control_data, control_fine_data], ["Hash Time", "Hash and Insert Time", "Comparison Time"], ["coarse", "fine"], ["#5caec4", "#c0cccf", "#2f3638"], "Time (nanoseconds)", "Sequential Runtime")
 plt.savefig("sequential.pdf", bbox_inches='tight', format='pdf')
-plt.show()
+#plt.show()
 plt.close()
 
 cm = plt.get_cmap('plasma')
 colors = [cm(i / len(nums)) for i in range(0, len(nums))]
 
-plot_bars([hash_times, hash_times_l], [str(num) + " Workers" for num in nums], ["coarse", "fine"], colors, "Speedup", "Step 2: Hash Times")
+plot_bars([hash_times, hash_times_l], [str(num) + " Workers" for num in nums], ["coarse", "fine"], colors, "Speedup", "Step 2: Hashing Speedup")
 plt.savefig("hash.pdf", bbox_inches='tight', format='pdf')
-plt.show()
+#plt.show()
 plt.close()
 
-plot_bars([hash_insert_times, hash_insert_times_l], [str(num) + " Workers" for num in nums], ["coarse", "fine"], colors, "Speedup", "Step 2: Hash+Insert Times")
+plot_bars([hash_insert_times, hash_insert_times_l], [str(num) + " Workers" for num in nums], ["coarse", "fine"], colors, "Speedup", "Step 2: Hashing + Insertion Speedup")
 plt.savefig("hashinsert.pdf", bbox_inches='tight', format='pdf')
-plt.show()
+#plt.show()
 plt.close()
 
-plot_bars([total_times, total_times_l], [str(num) + " Workers" for num in nums], ["coarse", "fine"], colors, "Speedup", "Step 2: Total Times")
+plot_bars([total_times, total_times_l], [str(num) + " Workers" for num in nums], ["coarse", "fine"], colors, "Speedup", "Step 2: Total Speedup")
 plt.savefig("total.pdf", bbox_inches='tight', format='pdf')
-plt.show()
+#plt.show()
 plt.close()
 
 

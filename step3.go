@@ -141,10 +141,6 @@ func main() {
 
 	var lock sync.Mutex
 
-	runtime.GC()
-	// Start timing
-	beginTime := time.Now()
-
 	/*
 		  // Spawn a goroutine for each tree
 			for i, tree := range trees {
@@ -198,6 +194,9 @@ func main() {
 	fmt.Println(hashingTime)
 
 	// Actually compute the hashing and insert in the map
+	runtime.GC()
+	// Start timing
+	beginTime := time.Now()
 	beginHashingPlusInsert := time.Now()
 	if !lockVar {
 		// Start receiving hashes to insert in the map
