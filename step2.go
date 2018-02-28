@@ -136,7 +136,6 @@ func main() {
 
 	var lock sync.Mutex
 
-
 	/*
 		  // Spawn a goroutine for each tree
 			for i, tree := range trees {
@@ -204,7 +203,7 @@ func main() {
 			computeHashesLock(&trees, 0, &hashes, &hashMap, &lock, finishedHashMap)
 			<-finishedHashMap
 		} else {
-      // This is the 'spawn a goroutine for every BST' approach
+			// This is the 'spawn a goroutine for every BST' approach
 			hashChan := make(chan *[]uint32, len(trees))
 			go computeHashesSingle(&trees, 0, hashChan, pairChan)
 			hashes = *(<-hashChan)
@@ -270,6 +269,16 @@ func main() {
 	    }
 	  }
 	*/
+
+	println("Begin Map")
+	for _, list := range hashMap {
+		print("\n[")
+		for _, i := range list {
+			print(i, " ")
+		}
+		print("]\n")
+	}
+	println("End Map")
 
 	endTime := time.Now()
 
