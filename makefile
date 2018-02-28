@@ -1,4 +1,6 @@
-WRK=1
+HWK=1
+CWK=1
+DWK=1
 FILE=coarse
 PRNT=
 LCK=
@@ -6,7 +8,7 @@ LCK=
 all: build
 	
 run: build
-	./step3.out -input=sample/$(FILE).txt -hash-workers=$(WRK) $(PRNT) $(LCK)
+	./step3.out -input=sample/$(FILE).txt -hash-workers=$(HWK) -data-workers=$(DWK) -comp-workers=$(CWK) $(PRNT) $(LCK)
 
 build:
 	go build -o tree.out tree.go
@@ -30,5 +32,5 @@ fine: build
 fine: FILE=fine
 fine: run
 
-2wrk: WRK=2
-3wrk: simple
+2wrk: HWK=2
+2wrk: simple

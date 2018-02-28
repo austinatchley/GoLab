@@ -23,6 +23,11 @@ type Tree struct {
 	Right *Tree
 }
 
+type Pair struct {
+  i int
+  j int
+}
+
 /*
 * Struct Methods
  */
@@ -240,26 +245,48 @@ func main() {
 	//fmt.Println(hashMap)
   var wg sync.WaitGroup
 
-	for _, list := range hashMap {
-		//fmt.Println(list)
-		for i := range list {
-			for j := i + 1; j < len(list); j++ {
-        wg.Add(1)
-        go func(li, lj int) {
-          defer wg.Done()
-          // Compare the supposed equivalent trees
-          result := SameTraverse(&trees[li], &trees[lj])
-
-          // Mirror result to cut down on computation
-          matrix[li][lj] = result
-          matrix[lj][li] = result
-        }(list[i], list[j])
-			}
-		}
-	}
+  // Fill diagonal with true
 	for i := range matrix {
 		matrix[i][i] = true
 	}
+
+  if cWorkers == 1 {
+    for _, list := range hashMap {
+      //fmt.Println(list)
+      for i := range list {
+        for j := i + 1; j < len(list); j++ {
+          wg.Add(1)
+          go func(li, lj int) {
+            defer wg.Done()
+            // Compare the supposed equivalent trees
+            result := SameTraverse(&trees[li], &trees[lj])
+
+            // Mirror result to cut down on computation
+            matrix[li][lj] = result
+            matrix[lj][li] = result
+          }(list[i], list[j])
+        }
+      }
+    }
+  } else {
+    treeChan := make(chan Pair, len(hashMap) / 2)
+    wg.Add(cWorkers)
+    for i := 0; i < cWorkers; i++ {
+      go parallelComparison(treeChan, &trees, &matrix, &wg)
+    }
+
+    for _, list := range hashMap {
+      for i := range list {
+        for j := i + 1; j < len(list); j++ {
+          println("comparing", i, "to", j)
+          treeChan <- Pair{i, j}
+        }
+      }
+    }
+    for i := 0; i < cWorkers; i++ {
+      treeChan <- Pair{-1, -1}
+    }
+  }
   wg.Wait()
 
 	endTime := time.Now()
@@ -428,6 +455,28 @@ func insertHashesSingle(pairChan chan struct {
 		(*hashMap)[pair.uint32] = append((*hashMap)[pair.uint32], pair.int)
 	}
 	finished <- 1
+}
+
+func parallelComparison(treeChan chan Pair, trees *[]Tree, matrix *[][]bool, wg *sync.WaitGroup) {
+  for {
+    pair, ok := <-treeChan
+    if !ok {
+      break
+    }
+    i := pair.i
+    j := pair.j
+
+    if i == -1 && j == -1 {
+      break
+    }
+
+    result := SameTraverse(&(*trees)[i], &(*trees)[j])
+    println(i, j, "-> ", result)
+
+    (*matrix)[i][j] = result
+    (*matrix)[j][i] = result
+  }
+  wg.Done()
 }
 
 /*
