@@ -204,6 +204,7 @@ func main() {
 			computeHashesLock(&trees, 0, &hashes, &hashMap, &lock, finishedHashMap)
 			<-finishedHashMap
 		} else {
+      // This is the 'spawn a goroutine for every BST' approach
 			hashChan := make(chan *[]uint32, len(trees))
 			go computeHashesSingle(&trees, 0, hashChan, pairChan)
 			hashes = *(<-hashChan)
