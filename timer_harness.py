@@ -127,63 +127,61 @@ print("control fine: ", control_fine)
 
 nums = []
 
-files = ["sample/fine.txt", "sample/coarse.txt"]
-for f in files:
-    workers = 1
-    it = 0
-    while workers <= h:
-        nums.append(workers)
-        hash_time = 0.0
-        hash_insert_time = 0.0
-        total_time = 0.0
+workers = 1
+it = 0
+while workers <= h:
+    nums.append(workers)
+    hash_time = 0.0
+    hash_insert_time = 0.0
+    total_time = 0.0
 
-        tests_completed = 0
+    tests_completed = 0
 
-        for i in range(TESTS):
-            print("\nIteration ", i)
-            val = do_test(f, workers, d, c, "")
-            if val != -1:
-                hash_time += val[0]
-                hash_insert_time += val[1]
-                total_time += val[2]
+    for i in range(TESTS):
+        print("\nIteration ", i)
+        val = do_test("sample/coarse.txt", workers, d, c, "")
+        if val != -1:
+            hash_time += val[0]
+            hash_insert_time += val[1]
+            total_time += val[2]
 
-                tests_completed += 1
+            tests_completed += 1
 
-        average_hash = hash_time / tests_completed
-        average_hash_insert = hash_insert_time / tests_completed
-        average_total = total_time / tests_completed
+    average_hash = hash_time / tests_completed
+    average_hash_insert = hash_insert_time / tests_completed
+    average_total = total_time / tests_completed
 
-        hash_times.insert(it, control[0] / average_hash)
-        hash_insert_times.insert(it, control[1] / average_hash_insert)
-        total_times.insert(it, control[2] / average_total)
+    hash_times.insert(it, control[0] / average_hash)
+    hash_insert_times.insert(it, control[1] / average_hash_insert)
+    total_times.insert(it, control[2] / average_total)
 
-        # Do the fine test now
-        hash_time = 0.0
-        hash_insert_time = 0.0
-        total_time = 0.0
+    # Do the fine test now
+    hash_time = 0.0
+    hash_insert_time = 0.0
+    total_time = 0.0
 
-        tests_completed = 0
+    tests_completed = 0
 
-        for i in range(TESTS):
-            print("\nLocking Iteration ", i)
-            val = do_test(f, workers, d, c, "-l")
-            if val != -1:
-                hash_time += val[0]
-                hash_insert_time += val[1]
-                total_time += val[2]
+    for i in range(TESTS):
+        print("\nIteration ", i)
+        val = do_test("sample/fine.txt", workers, d, c, "")
+        if val != -1:
+            hash_time += val[0]
+            hash_insert_time += val[1]
+            total_time += val[2]
 
-                tests_completed += 1
+            tests_completed += 1
 
-        average_hash = hash_time / tests_completed
-        average_hash_insert = hash_insert_time / tests_completed
-        average_total = total_time / tests_completed
+    average_hash = hash_time / tests_completed
+    average_hash_insert = hash_insert_time / tests_completed
+    average_total = total_time / tests_completed
 
-        hash_times_l.insert(it, control_fine[0] / average_hash)
-        hash_insert_times_l.insert(it, control_fine[1] / average_hash_insert)
-        total_times_l.insert(it, control_fine[2] / average_total)
+    hash_times_l.insert(it, control_fine[0] / average_hash)
+    hash_insert_times_l.insert(it, control_fine[1] / average_hash_insert)
+    total_times_l.insert(it, control_fine[2] / average_total)
 
-        workers = workers * 2
-        it+=1
+    workers = workers * 2
+    it+=1
 
 print('\nSpeedups:')
 
