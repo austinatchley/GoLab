@@ -108,16 +108,23 @@ def plot_bars(barGroups, barNames, groupNames, colors, xlabel="", ylabel="", tit
 
     maxlen = max(len(group) for group in barGroups)
     xvals = range(len(barGroups))
-    
+
     for i, bars in enumerate(zip(*barGroups)):
         print(bars)
-        plt.bar(offset(xvals, i * width/maxlen), bars, width/maxlen, color=colors[i])
+        if width != -1:
+            plt.bar(offset(xvals, i * width/maxlen), bars, width/maxlen, color=colors[i])
+        else:
+            plt.bar(offset(xvals, i * 0.8/maxlen), bars, 0.8/maxlen, color=colors[i])
 
     ax.set_ylabel(ylabel)
     if xlabel != "":
         ax.set_xlabel(xlabel)
     ax.set_title(title)
-    ax.set_xticks(offset(xvals, width / 2))
+    if width != -1:
+        ax.set_xticks(offset(xvals, width / 2))
+    else:
+        ax.set_xticks(xvals)
+
     ax.set_xticklabels(groupNames)
 
     # Shrink current axis by 20%
@@ -201,7 +208,7 @@ control = control_test("sample/coarse.txt", args_3)
 
 average_compare = 0
 compare_times = []
-workers = 1
+workers = -1
 it = 0
 
 while workers <= c:
@@ -218,7 +225,10 @@ while workers <= c:
 
     compare_times.insert(it, (control[2] - control[1]) / average_compare)
 
-    workers = workers * 2
+    if workers == -1:
+        workers = 1
+    else:
+        workers = workers * 2
     it+=1
 
 print('\nSpeedups:')
@@ -288,7 +298,10 @@ plt.close()
 list_of_compare_times = [[x] for x in compare_times]
 print(list_of_compare_times)
 
-plot_bars(list_of_compare_times, [""], [str(num) for num in nums], colors, "Threads", "Speedup", "Step 3: Tree Comparison Speedup")
+names = [str(num) for num in nums]
+names.insert(0, "goroutines")
+
+plot_bars(list_of_compare_times, [""], names, colors, "Threads", "Speedup", "Step 3: Tree Comparison Speedup", -1)
 plt.savefig("compare.pdf", bbox_inches='tight', format='pdf')
 plt.show()
 plt.close()
