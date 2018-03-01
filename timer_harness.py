@@ -301,7 +301,7 @@ print(list_of_compare_times)
 names = [str(num) for num in nums]
 names.insert(0, "goroutines")
 
-plot_bars(list_of_compare_times, [""], names, colors, "Threads", "Speedup", "Step 3: Tree Comparison Speedup", -1)
+plot_bars(list_of_compare_times, [""], names, ["#5caec4"], "Threads", "Speedup", "Step 3: Tree Comparison Speedup", -1)
 plt.savefig("compare.pdf", bbox_inches='tight', format='pdf')
 plt.show()
 plt.close()
