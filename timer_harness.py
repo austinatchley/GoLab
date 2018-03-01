@@ -73,8 +73,8 @@ def run(arg_list):
 
     return data
 
-def control_test(i):
-    arg_list = args.split()
+def control_test(i, arg_string):
+    arg_list = arg_string.split()
     arg_list[1] += "1"
     arg_list[2] += "1"
     arg_list[3] += "1"
@@ -94,7 +94,7 @@ def control_test(i):
 
     return data
 
-def plot_bars(barGroups, barNames, groupNames, colors, ylabel="", title="", width=0.8):
+def plot_bars(barGroups, barNames, groupNames, colors, xlabel="", ylabel="", title="", width=0.8):
     """Plot a grouped bar chart
     barGroups  - list of groups, where each group is a list of bar heights
     barNames   - list containing the name of each bar within any group
@@ -114,6 +114,8 @@ def plot_bars(barGroups, barNames, groupNames, colors, ylabel="", title="", widt
         plt.bar(offset(xvals, i * width/maxlen), bars, width/maxlen, color=colors[i])
 
     ax.set_ylabel(ylabel)
+    if xlabel != "":
+        ax.set_xlabel(xlabel)
     ax.set_title(title)
     ax.set_xticks(offset(xvals, width / 2))
     ax.set_xticklabels(groupNames)
@@ -128,10 +130,10 @@ def plot_bars(barGroups, barNames, groupNames, colors, ylabel="", title="", widt
 
 print(h, d, c)
 print("Control")
-control_test("sample/coarse.txt")
-control = control_test("sample/coarse.txt")
-control_test("sample/fine.txt")
-control_fine = control_test("sample/fine.txt")
+control_test("sample/coarse.txt", args)
+control = control_test("sample/coarse.txt", args)
+control_test("sample/fine.txt", args)
+control_fine = control_test("sample/fine.txt", args)
 print("control coarse: ", control)
 print("control fine: ", control_fine)
 
@@ -194,22 +196,27 @@ while workers <= h:
     workers = workers * 2
     it+=1
 
+control_test("sample/coarse.txt", args_3)
+control = control_test("sample/coarse.txt", args_3)
+
 average_compare = 0
 compare_times = []
 workers = 1
 it = 0
-while workers <= h:
+
+while workers <= c:
     compare_time = 0
+    tests_completed = 0
     for i in range(TESTS):
         print("\nIteration ", i)
-        val = do_test(args_3, "sample/fine.txt", 4, d, workers, "")
+        val = do_test(args_3, "sample/coarse.txt", 16, d, workers, "")
         if val != -1:
             compare_time += val[2] - val[1]
             tests_completed += 1
 
     average_compare = compare_time / tests_completed
 
-    compare_times.insert(it, (control_fine[2] - control_fine[0]) / average_compare)
+    compare_times.insert(it, (control[2] - control[1]) / average_compare)
 
     workers = workers * 2
     it+=1
@@ -255,7 +262,7 @@ plt.show()
 control_data = [control[0], control[1], control[2] - control[1]]
 control_fine_data = [control_fine[0], control_fine[1], control_fine[2] - control_fine[1]]
 
-plot_bars([control_data, control_fine_data], ["Hash Time", "Hash and Insert Time", "Comparison Time"], ["coarse", "fine"], ["#5caec4", "#c0cccf", "#2f3638"], "Time (nanoseconds)", "Sequential Runtime")
+plot_bars([control_data, control_fine_data], ["Hash Time", "Hash and Insert Time", "Comparison Time"], ["coarse", "fine"], ["#5caec4", "#c0cccf", "#2f3638"], "", "Time (nanoseconds)", "Sequential Runtime")
 plt.savefig("sequential.pdf", bbox_inches='tight', format='pdf')
 #plt.show()
 plt.close()
@@ -263,22 +270,25 @@ plt.close()
 cm = plt.get_cmap('plasma')
 colors = [cm(i / len(nums)) for i in range(0, len(nums))]
 
-plot_bars([hash_times, hash_times_l], [str(num) + " Workers" for num in nums], ["coarse", "fine"], colors, "Speedup", "Step 2: Hashing Speedup")
+plot_bars([hash_times, hash_times_l], [str(num) + " Workers" for num in nums], ["coarse", "fine"], colors, "", "Speedup", "Step 2: Hashing Speedup")
 plt.savefig("hash.pdf", bbox_inches='tight', format='pdf')
 #plt.show()
 plt.close()
 
-plot_bars([hash_insert_times, hash_insert_times_l], [str(num) + " Workers" for num in nums], ["coarse", "fine"], colors, "Speedup", "Step 2: Hashing + Insertion Speedup")
+plot_bars([hash_insert_times, hash_insert_times_l], [str(num) + " Workers" for num in nums], ["coarse", "fine"], colors, "", "Speedup", "Step 2: Hashing + Insertion Speedup")
 plt.savefig("hashinsert.pdf", bbox_inches='tight', format='pdf')
 #plt.show()
 plt.close()
 
-plot_bars([total_times, total_times_l], [str(num) + " Workers" for num in nums], ["coarse", "fine"], colors, "Speedup", "Step 2: Total Speedup")
+plot_bars([total_times, total_times_l], [str(num) + " Workers" for num in nums], ["coarse", "fine"], colors, "", "Speedup", "Step 2: Total Speedup")
 plt.savefig("total.pdf", bbox_inches='tight', format='pdf')
 #plt.show()
 plt.close()
 
-plot_bars([compare_times], [], [str(num) + " Threads" for num in nums], colors, "Speedup", "Step 3: Tree Comparison Speedup")
+list_of_compare_times = [[x] for x in compare_times]
+print(list_of_compare_times)
+
+plot_bars(list_of_compare_times, [""], [str(num) for num in nums], colors, "Threads", "Speedup", "Step 3: Tree Comparison Speedup")
 plt.savefig("compare.pdf", bbox_inches='tight', format='pdf')
 plt.show()
 plt.close()
