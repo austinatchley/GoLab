@@ -249,23 +249,23 @@ func main() {
 		matrix[i][i] = true
 	}
 
-  if cWorkers == 1 {
+	if cWorkers == 1 {
 		for _, list := range hashMap {
 			for i := range list {
 				for j := i + 1; j < len(list); j++ {
-          li := list[i]
-          lj := list[j]
-          // Compare the supposed equivalent trees
-          result := SameTraverse(&trees[li], &trees[lj])
+					li := list[i]
+					lj := list[j]
+					// Compare the supposed equivalent trees
+					result := SameTraverse(&trees[li], &trees[lj])
 
-          // Mirror result to cut down on computation
-          matrix[li][lj] = result
-          matrix[lj][li] = result
+					// Mirror result to cut down on computation
+					matrix[li][lj] = result
+					matrix[lj][li] = result
 				}
 			}
 		}
 	} else if cWorkers == -1 {
-    for _, list := range hashMap {
+		for _, list := range hashMap {
 			//fmt.Println(list)
 			for i := range list {
 				for j := i + 1; j < len(list); j++ {
@@ -282,7 +282,7 @@ func main() {
 				}
 			}
 		}
-  } else {
+	} else {
 		treeChan := make(chan Pair, len(hashMap))
 		wg.Add(cWorkers)
 		for i := 0; i < cWorkers; i++ {

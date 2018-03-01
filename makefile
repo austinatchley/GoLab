@@ -11,7 +11,7 @@ run: build
 	./step3.out -input=sample/$(FILE).txt -hash-workers=$(HWK) -data-workers=$(DWK) -comp-workers=$(CWK) $(PRNT) $(LCK)
 
 build:
-	go build -o tree.out tree.go
+	go build -o step1.out step1.go
 	go build -o step2.out step2.go
 	go build -o step3.out step3.go
 
