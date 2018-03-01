@@ -93,48 +93,37 @@ func (tree *Tree) Hash() uint32 {
  */
 
 func main() {
-	var hWorkers int
+	var hWorkers, dWorkers, cWorkers int
 	flag.IntVar(&hWorkers, "hash-workers", 1, "number of workers on hashing")
-
-	var dWorkers int
 	flag.IntVar(&dWorkers, "data-workers", 1, "number of workers on data")
-
-	var cWorkers int
 	flag.IntVar(&cWorkers, "comp-workers", 1, "number of workers on comparison")
 
 	var input string
 	flag.StringVar(&input, "input", "", "path to input file")
 
-	var lockVar bool
+	var lockVar, pMatrix bool
 	flag.BoolVar(&lockVar, "l", false, "lock on hashMap write")
-
-	var pMatrix bool
 	flag.BoolVar(&pMatrix, "p", false, "print the resulting equivalency matrix")
 
 	flag.Parse()
 
 	_, _, _, _ = hWorkers, dWorkers, cWorkers, input
 
-	//fmt.Println("Number of Hash Workers: ", hWorkers)
-	//fmt.Println("Number of Data Workers: ", *dWorkers)
-	//fmt.Println("Number of Comparison Workers: ", *cWorkers)
-	//fmt.Println("Input path: ", input)
-
+  // This is the main container for all the trees
 	trees := make([]Tree, 0)
 
+  // Reads and constructs all trees from the input
 	readInput(&trees, input)
-	//fmt.Println(trees, len(trees))
 
-	// Compute hashes
 	// hashMap is a map from hash to slice of tree indices
-	// hashes is the array of hashes by index
+	// hashes is the slice of hashes by index mirroring that of trees
 	hashMap := make(map[uint32][]int, len(trees))
 	hashes := make([]uint32, len(trees))
 
 	// matrix is the adjacency matrix, initialized to false
 	matrix := make([][]bool, len(trees))
 
-	// Construct adjacency matrix
+	// Construct adjacency matrix columns
 	for i := range matrix {
 		matrix[i] = make([]bool, len(trees))
 	}
@@ -158,13 +147,15 @@ func main() {
 		int
 	}, len(trees))
 
+  // If we have more workers than trees, just assign a worker to each tree
 	if hWorkers > len(trees) {
 		hWorkers = len(trees)
 	}
+
 	finishedHashMap := make(chan int, hWorkers)
 	finishedHashTimer := make(chan int, hWorkers)
 
-	// Create dummy hash slice to time hashing algorithm
+	// Create dummy hash slice to isolate and time hashing algorithm
 	dummyHashes := make([]uint32, len(trees))
 	startHashing := time.Now()
 	if !lockVar {
@@ -193,13 +184,15 @@ func main() {
 	hashingTime := endHashing.Sub(startHashing).Nanoseconds()
 	fmt.Println(hashingTime)
 
-	// Actually compute the hashing and insert in the map
+  // make sure we don't have any extraneous data that will affect timing
 	runtime.GC()
-	// Start timing
+	// Actually compute the hashing and insert in the map
+	// Start timing for total and hash+insert
 	beginTime := time.Now()
 	beginHashingPlusInsert := time.Now()
+
+	// If we aren't locking, start receiving hashes to insert in the map before they are sent
 	if !lockVar {
-		// Start receiving hashes to insert in the map
 		go insertHashesSingle(pairChan, finishedHashMap, &hashMap, len(trees))
 	}
 
@@ -215,9 +208,12 @@ func main() {
 	} else {
 		if lockVar {
 			for i := 0; i < hWorkers; i++ {
+        // Partition each worker's piece of the trees slice
 				curTrees := trees[computeBounds(len(trees), i, hWorkers):computeBounds(len(trees), i+1, hWorkers)]
 				go computeHashesLock(&curTrees, computeBounds(len(trees), i, hWorkers), &hashes, &hashMap, &lock, finishedHashMap)
 			}
+
+      // Make sure that each worker has finished before continuing
 			for i := 0; i < hWorkers; i++ {
 				<-finishedHashMap
 			}
@@ -226,10 +222,13 @@ func main() {
 
 			for i := 0; i < hWorkers; i++ {
 				curTrees := trees[computeBounds(len(trees), i, hWorkers):computeBounds(len(trees), i+1, hWorkers)]
-				//fmt.Println(curTrees)
+
+        // Computes the hashes for its partition and adds to a private slice
+        // Also sends insertHashesSingle() the data it has been waiting for
 				go computeHashesSingle(&curTrees, computeBounds(len(trees), i, hWorkers), hashChan, pairChan)
 			}
 
+      // Merge the private slices
 			for i := 0; i < hWorkers; i++ {
 				hash := <-hashChan
 				hashes = append(hashes, *hash...)
@@ -241,7 +240,6 @@ func main() {
 	hashingPlusInsertTime := endHashingPlusInsert.Sub(beginHashingPlusInsert).Nanoseconds()
 	fmt.Println(hashingPlusInsertTime)
 
-	//fmt.Println(hashMap)
 	var wg sync.WaitGroup
 
 	// Fill diagonal with true
@@ -249,9 +247,10 @@ func main() {
 		matrix[i][i] = true
 	}
 
-	if cWorkers == 1 {
+	if cWorkers == 1 {            // Do the sequential algorithm
 		for _, list := range hashMap {
 			for i := range list {
+        // We can start from i + 1 because Same(i,i) is always true
 				for j := i + 1; j < len(list); j++ {
 					li := list[i]
 					lj := list[j]
@@ -264,15 +263,16 @@ func main() {
 				}
 			}
 		}
-	} else if cWorkers == -1 {
+	} else if cWorkers == -1 {    // Unlimited goroutines approach
 		for _, list := range hashMap {
 			//fmt.Println(list)
 			for i := range list {
 				for j := i + 1; j < len(list); j++ {
+          // For each goroutine created, add 1 to the wg
 					wg.Add(1)
 					go func(li, lj int) {
+            // Tell the WaitGroup we are done after returning
 						defer wg.Done()
-						// Compare the supposed equivalent trees
 						result := SameTraverse(&trees[li], &trees[lj])
 
 						// Mirror result to cut down on computation
@@ -282,13 +282,18 @@ func main() {
 				}
 			}
 		}
-	} else {
+	} else {                    // Thread Pool Approach
+    // Pair is a pair of int indices in trees
 		treeChan := make(chan Pair, len(hashMap))
+
 		wg.Add(cWorkers)
 		for i := 0; i < cWorkers; i++ {
+      // Tell cWorkers to start looking for data in treeChan
 			go parallelComparison(treeChan, &trees, &matrix, &wg)
 		}
 
+    // For every pair that needs to be checked, put it in treeChan
+    // Each of the cWorkers will fight for the data in the channel
 		for _, list := range hashMap {
 			for i := range list {
 				for j := i + 1; j < len(list); j++ {
@@ -296,10 +301,13 @@ func main() {
 				}
 			}
 		}
+    // This acts as a stopper at the end of the list
+    // One for each cWorker to read
 		for i := 0; i < cWorkers; i++ {
 			treeChan <- Pair{-1, -1}
 		}
 	}
+  // Wait until we are completely done inserting
 	wg.Wait()
 
 	endTime := time.Now()
@@ -325,6 +333,8 @@ func _walk(t *Tree, ch chan int) {
 	}
 }
 
+// See _walk
+// If something is pulled out of kill, preempts walk and returns
 func _walk_preempt(t *Tree, ch, kill chan int) {
 	if t != nil {
 		_walk_preempt(t.Left, ch, kill)
@@ -351,20 +361,8 @@ func Walk(t *Tree, ch, kill chan int) {
 	close(ch)
 }
 
-// Same determines whether the trees
+// Determines whether the trees
 // t1 and t2 contain the same values.
-// Uses the hashes map to cheat
-func Same(t1, t2 *Tree, hash1 uint32, i2 int, hashMap *map[uint32][]int) bool {
-	equalTrees := (*hashMap)[hash1]
-	for i := range equalTrees {
-		if equalTrees[i] == i2 {
-			return SameTraverse(t1, t2)
-		}
-	}
-	//fmt.Println("t1: ", *t1, "\nt2: ", *t2, "\neT: ", equalTrees, "\n")
-	return false
-}
-
 func SameTraverse(t1, t2 *Tree) bool {
 	c1 := make(chan int)
 	c2 := make(chan int)
@@ -378,6 +376,7 @@ func SameTraverse(t1, t2 *Tree) bool {
 		v2, ok2 := <-c2
 
 		if v1 != v2 || ok1 != ok2 {
+      // Before returning, kill the walking goroutine
 			kill <- 1
 			kill <- 2
 			return false
@@ -387,6 +386,7 @@ func SameTraverse(t1, t2 *Tree) bool {
 			break
 		}
 	}
+  // See :379
 	kill <- 1
 	kill <- 2
 	return true
@@ -440,6 +440,7 @@ func computeHashesLock(trees *[]Tree, offset int, hashes *[]uint32, hashMap *map
 	finished <- 1
 }
 
+// pairChan sends data to insertHashesSingle()
 func computeHashesSingle(trees *[]Tree, offset int, hashChan chan *[]uint32, pairChan chan struct {
 	uint32
 	int
@@ -478,12 +479,14 @@ func parallelComparison(treeChan chan Pair, trees *[]Tree, matrix *[][]bool, wg 
 		i := pair.i
 		j := pair.j
 
+    // This is the end case. Tell wg we are done
 		if i == -1 && j == -1 {
 			break
 		}
 
 		result := SameTraverse(&(*trees)[i], &(*trees)[j])
 
+    // Mirror result across diagonal
 		(*matrix)[i][j] = result
 		(*matrix)[j][i] = result
 	}
